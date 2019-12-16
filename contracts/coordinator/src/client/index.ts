@@ -28,8 +28,14 @@ import { decorators } from './utils/decorators';
 
 export { CoordinatorServerErrorMsg, CoordinatorServerCancellationResponse };
 
+export declare enum CoordinatorFillFunctionStep {
+    RequestTakerSignature = "REQUEST_TAKER_SIGNATURE",
+    RequestCoordinatorSignature = "REQUEST_COORDINATOR_SIGNATURE",
+    RequestSubmitTransaction = "REQUEST_SUBMIT_TRANSACTION"
+}
+
 const DEFAULT_TX_DATA = {
-    gas: devConstants.GAS_LIMIT,
+    //gas: devConstants.GAS_LIMIT,
     gasPrice: new BigNumber(1),
     value: new BigNumber(150000), // DEFAULT_PROTOCOL_FEE_MULTIPLIER
 };
@@ -143,6 +149,8 @@ export class CoordinatorClient {
         order: Order,
         takerAssetFillAmount: BigNumber,
         signature: string,
+        callback: (step: CoordinatorFillFunctionStep) => void,
+        timestamp: number,
         txData: TxData,
         sendTxOpts: Partial<SendTransactionOpts> = { shouldValidate: true },
     ): Promise<string> {
@@ -150,6 +158,8 @@ export class CoordinatorClient {
         assert.isValidBaseUnitAmount('takerAssetFillAmount', takerAssetFillAmount);
         return this._executeTxThroughCoordinatorAsync(
             ExchangeFunctionName.FillOrder,
+            callback,
+            timestamp,
             txData,
             sendTxOpts,
             [order],
@@ -175,6 +185,8 @@ export class CoordinatorClient {
         order: Order,
         takerAssetFillAmount: BigNumber,
         signature: string,
+        callback: (step: CoordinatorFillFunctionStep) => void,
+        timestamp: number,
         txData: TxData,
         sendTxOpts: Partial<SendTransactionOpts> = { shouldValidate: true },
     ): Promise<string> {
@@ -182,6 +194,8 @@ export class CoordinatorClient {
         assert.isValidBaseUnitAmount('takerAssetFillAmount', takerAssetFillAmount);
         return this._executeTxThroughCoordinatorAsync(
             ExchangeFunctionName.FillOrKillOrder,
+            callback,
+            timestamp,
             txData,
             sendTxOpts,
             [order],
@@ -207,6 +221,8 @@ export class CoordinatorClient {
         orders: Order[],
         takerAssetFillAmounts: BigNumber[],
         signatures: string[],
+        callback: (step: CoordinatorFillFunctionStep) => void,
+        timestamp: number,
         txData: TxData,
         sendTxOpts?: Partial<SendTransactionOpts>,
     ): Promise<string> {
@@ -215,6 +231,8 @@ export class CoordinatorClient {
             orders,
             takerAssetFillAmounts,
             signatures,
+            callback,
+            timestamp,
             txData,
             sendTxOpts,
         );
@@ -234,6 +252,8 @@ export class CoordinatorClient {
         orders: Order[],
         takerAssetFillAmounts: BigNumber[],
         signatures: string[],
+        callback: (step: CoordinatorFillFunctionStep) => void,
+        timestamp: number,
         txData: TxData,
         sendTxOpts?: Partial<SendTransactionOpts>,
     ): Promise<string> {
@@ -242,6 +262,8 @@ export class CoordinatorClient {
             orders,
             takerAssetFillAmounts,
             signatures,
+            callback,
+            timestamp,
             txData,
             sendTxOpts,
         );
@@ -261,6 +283,8 @@ export class CoordinatorClient {
         orders: Order[],
         takerAssetFillAmounts: BigNumber[],
         signatures: string[],
+        callback: (step: CoordinatorFillFunctionStep) => void,
+        timestamp: number,
         txData: TxData,
         sendTxOpts?: Partial<SendTransactionOpts>,
     ): Promise<string> {
@@ -269,6 +293,8 @@ export class CoordinatorClient {
             orders,
             takerAssetFillAmounts,
             signatures,
+            callback,
+            timestamp,
             txData,
             sendTxOpts,
         );
@@ -291,6 +317,8 @@ export class CoordinatorClient {
         orders: Order[],
         makerAssetFillAmount: BigNumber,
         signatures: string[],
+        callback: (step: CoordinatorFillFunctionStep) => void,
+        timestamp: number,
         txData: TxData,
         sendTxOpts: SendTransactionOpts = { shouldValidate: true },
     ): Promise<string> {
@@ -299,6 +327,8 @@ export class CoordinatorClient {
             orders,
             makerAssetFillAmount,
             signatures,
+            callback,
+            timestamp,
             txData,
             sendTxOpts,
         );
@@ -319,6 +349,8 @@ export class CoordinatorClient {
         orders: Order[],
         makerAssetFillAmount: BigNumber,
         signatures: string[],
+        callback: (step: CoordinatorFillFunctionStep) => void,
+        timestamp: number,
         txData: TxData,
         sendTxOpts: SendTransactionOpts = { shouldValidate: true },
     ): Promise<string> {
@@ -327,6 +359,8 @@ export class CoordinatorClient {
             orders,
             makerAssetFillAmount,
             signatures,
+            callback,
+            timestamp,
             txData,
             sendTxOpts,
         );
@@ -348,6 +382,8 @@ export class CoordinatorClient {
         orders: Order[],
         takerAssetFillAmount: BigNumber,
         signatures: string[],
+        callback: (step: CoordinatorFillFunctionStep) => void,
+        timestamp: number,
         txData: TxData,
         sendTxOpts: SendTransactionOpts = { shouldValidate: true },
     ): Promise<string> {
@@ -356,6 +392,8 @@ export class CoordinatorClient {
             orders,
             takerAssetFillAmount,
             signatures,
+            callback,
+            timestamp,
             txData,
             sendTxOpts,
         );
@@ -376,6 +414,8 @@ export class CoordinatorClient {
         orders: Order[],
         takerAssetFillAmount: BigNumber,
         signatures: string[],
+        callback: (step: CoordinatorFillFunctionStep) => void,
+        timestamp: number,
         txData: TxData,
         sendTxOpts: SendTransactionOpts = { shouldValidate: true },
     ): Promise<string> {
@@ -384,6 +424,8 @@ export class CoordinatorClient {
             orders,
             takerAssetFillAmount,
             signatures,
+            callback,
+            timestamp,
             txData,
             sendTxOpts,
         );
@@ -400,12 +442,15 @@ export class CoordinatorClient {
     @decorators.asyncZeroExErrorHandler
     public async hardCancelOrderAsync(
         order: Order,
+        timestamp: number,
         txData: TxData,
         sendTxOpts: SendTransactionOpts = { shouldValidate: true },
     ): Promise<string> {
         assert.doesConformToSchema('order', order, schemas.orderSchema);
         return this._executeTxThroughCoordinatorAsync(
             ExchangeFunctionName.CancelOrder,
+            () => {},
+            timestamp,
             txData,
             sendTxOpts,
             [order],
@@ -425,12 +470,15 @@ export class CoordinatorClient {
     @decorators.asyncZeroExErrorHandler
     public async batchHardCancelOrdersAsync(
         orders: Order[],
+        timestamp: number,
         txData: TxData,
         sendTxOpts: SendTransactionOpts = { shouldValidate: true },
     ): Promise<string> {
         assert.doesConformToSchema('orders', orders, schemas.ordersSchema);
         return this._executeTxThroughCoordinatorAsync(
             ExchangeFunctionName.BatchCancelOrders,
+            () => {},
+            timestamp,
             txData,
             sendTxOpts,
             orders,
@@ -451,12 +499,15 @@ export class CoordinatorClient {
     @decorators.asyncZeroExErrorHandler
     public async hardCancelOrdersUpToAsync(
         targetOrderEpoch: BigNumber,
+        timestamp: number,
         txData: TxData,
         sendTxOpts: SendTransactionOpts = { shouldValidate: true },
     ): Promise<string> {
         assert.isBigNumber('targetOrderEpoch', targetOrderEpoch);
         return this._executeTxThroughCoordinatorAsync(
             ExchangeFunctionName.CancelOrdersUpTo,
+            () => {},
+            timestamp,
             txData,
             sendTxOpts,
             [],
@@ -471,13 +522,13 @@ export class CoordinatorClient {
      * @return  CoordinatorServerCancellationResponse. See [Cancellation Response](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/coordinator-specification.md#response).
      */
     @decorators.asyncZeroExErrorHandler
-    public async softCancelAsync(order: Order): Promise<CoordinatorServerCancellationResponse> {
+    public async softCancelAsync(order: Order, timestamp: number): Promise<CoordinatorServerCancellationResponse> {
         assert.doesConformToSchema('order', order, schemas.orderSchema);
         assert.isETHAddressHex('feeRecipientAddress', order.feeRecipientAddress);
         assert.isSenderAddressAsync('makerAddress', order.makerAddress, this._web3Wrapper);
 
         const data = this._exchangeInstance.cancelOrder(order).getABIEncodedTransactionData();
-        const transaction = await this._generateSignedZeroExTransactionAsync(data, order.makerAddress);
+        const transaction = await this._generateSignedZeroExTransactionAsync(data, order.makerAddress, timestamp);
         const endpoint = await this._getServerEndpointOrThrowAsync(order);
 
         const response = await this._executeServerRequestAsync(transaction, order.makerAddress, endpoint);
@@ -506,12 +557,12 @@ export class CoordinatorClient {
      * @return  CoordinatorServerCancellationResponse. See [Cancellation Response](https://github.com/0xProject/0x-protocol-specification/blob/master/v2/coordinator-specification.md#response).
      */
     @decorators.asyncZeroExErrorHandler
-    public async batchSoftCancelAsync(orders: SignedOrder[]): Promise<CoordinatorServerCancellationResponse[]> {
+    public async batchSoftCancelAsync(orders: SignedOrder[], timestamp: number): Promise<CoordinatorServerCancellationResponse[]> {
         assert.doesConformToSchema('orders', orders, schemas.ordersSchema);
         const makerAddress = getMakerAddressOrThrow(orders);
         assert.isSenderAddressAsync('makerAddress', makerAddress, this._web3Wrapper);
         const data = this._exchangeInstance.batchCancelOrders(orders).getABIEncodedTransactionData();
-        const transaction = await this._generateSignedZeroExTransactionAsync(data, makerAddress);
+        const transaction = await this._generateSignedZeroExTransactionAsync(data, makerAddress, timestamp);
 
         // make server requests
         const errorResponses: CoordinatorServerResponse[] = [];
@@ -571,6 +622,8 @@ export class CoordinatorClient {
         orders: Order[],
         assetFillAmount: BigNumber,
         signatures: string[],
+        callback: (step: CoordinatorFillFunctionStep) => void,
+        timestamp: number,
         txData: TxData,
         sendTxOpts: SendTransactionOpts = { shouldValidate: true },
     ): Promise<string> {
@@ -578,6 +631,8 @@ export class CoordinatorClient {
         assert.isBigNumber('assetFillAmount', assetFillAmount);
         return this._executeTxThroughCoordinatorAsync(
             exchangeFn,
+            callback,
+            timestamp,
             txData,
             sendTxOpts,
             orders,
@@ -592,6 +647,8 @@ export class CoordinatorClient {
         orders: Order[],
         takerAssetFillAmounts: BigNumber[],
         signatures: string[],
+        callback: (step: CoordinatorFillFunctionStep) => void,
+        timestamp: number,
         txData: TxData,
         sendTxOpts: SendTransactionOpts = { shouldValidate: true },
     ): Promise<string> {
@@ -601,6 +658,8 @@ export class CoordinatorClient {
         );
         return this._executeTxThroughCoordinatorAsync(
             exchangeFn,
+            callback,
+            timestamp,
             txData,
             sendTxOpts,
             orders,
@@ -612,6 +671,8 @@ export class CoordinatorClient {
 
     private async _executeTxThroughCoordinatorAsync(
         exchangeFn: ExchangeFunctionName,
+        callback: (step: CoordinatorFillFunctionStep) => void,
+        timestamp: number,
         txData: TxData,
         sendTxOpts: Partial<SendTransactionOpts>,
         ordersNeedingApprovals: Order[],
@@ -623,12 +684,15 @@ export class CoordinatorClient {
         // get ABI encoded transaction data for the desired exchange method
         const data = (this._exchangeInstance as any)[exchangeFn](...args).getABIEncodedTransactionData();
 
+        callback(CoordinatorFillFunctionStep.RequestTakerSignature);
         // generate and sign a ZeroExTransaction
-        const signedZrxTx = await this._generateSignedZeroExTransactionAsync(data, txData.from, txData.gasPrice);
+        const signedZrxTx = await this._generateSignedZeroExTransactionAsync(data, txData.from, txData.gasPrice, timestamp);
 
+        callback(CoordinatorFillFunctionStep.RequestCoordinatorSignature);
         // get approval signatures from registered coordinator operators
         const approvalSignatures = await this._getApprovalsAsync(signedZrxTx, ordersNeedingApprovals, txData.from);
 
+        callback(CoordinatorFillFunctionStep.RequestSubmitTransaction);
         // execute the transaction through the Coordinator Contract
         const txDataWithDefaults = {
             ...this._txDefaults,
@@ -644,7 +708,10 @@ export class CoordinatorClient {
         data: string,
         signerAddress: string,
         gasPrice?: BigNumber | string | number,
+        timestamp?: number
     ): Promise<SignedZeroExTransaction> {
+        const now = timestamp ? timestamp : Math.floor(Date.now() / 1000)
+
         const transaction: ZeroExTransaction = {
             salt: generatePseudoRandomSalt(),
             signerAddress,
@@ -654,9 +721,7 @@ export class CoordinatorClient {
                 chainId: await this._web3Wrapper.getChainIdAsync(),
             },
             expirationTimeSeconds: new BigNumber(
-                Math.floor(Date.now() / 1000) +
-                    DEFAULT_APPROVAL_EXPIRATION_TIME_SECONDS -
-                    DEFAULT_EXPIRATION_TIME_BUFFER_SECONDS,
+                now + DEFAULT_APPROVAL_EXPIRATION_TIME_SECONDS
             ),
             gasPrice: gasPrice ? new BigNumber(gasPrice) : new BigNumber(1),
         };
