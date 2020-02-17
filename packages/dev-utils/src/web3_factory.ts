@@ -23,7 +23,9 @@ export interface Web3Config {
     shouldAllowUnlimitedContractSize?: boolean;
     fork?: string;
     blockTime?: number;
+    locked?: boolean;
     unlocked_accounts?: string[];
+    hardfork?: string; // default: istanbul
 }
 
 export const web3Factory = {
@@ -78,7 +80,9 @@ export const web3Factory = {
                     mnemonic: 'concert load couple harbor equip island argue ramp clarify fence smart topic',
                     fork: config.fork,
                     blockTime: config.blockTime,
+                    locked: config.locked,
                     unlocked_accounts: config.unlocked_accounts,
+                    hardfork: config.hardfork || 'istanbul',
                 } as any), // TODO remove any once types are merged in DefinitelyTyped
             );
         } else {

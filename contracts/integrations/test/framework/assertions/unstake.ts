@@ -1,4 +1,10 @@
-import { decreaseCurrentAndNextBalance, OwnerStakeByStatus, StakeStatus } from '@0x/contracts-staking';
+import { encodeERC20AssetData } from '@0x/contracts-asset-proxy';
+import {
+    decreaseCurrentAndNextBalance,
+    OwnerStakeByStatus,
+    StakeStatus,
+    StakingRevertErrors,
+} from '@0x/contracts-staking';
 import { expect } from '@0x/contracts-test-utils';
 import { BigNumber } from '@0x/utils';
 import { TxData } from 'ethereum-types';
@@ -33,7 +39,7 @@ export function validUnstakeAssertion(
                 zrxVault.address,
                 txData.from as string,
                 amount,
-                deployment.assetDataEncoder.ERC20Token(deployment.tokens.zrx.address).getABIEncodedTransactionData(),
+                encodeERC20AssetData(deployment.tokens.zrx.address),
             );
             return expectedBalances;
         },
@@ -78,6 +84,26 @@ export function validUnstakeAssertion(
             expect(globalUndelegatedStake, 'Global undelegated stake').to.deep.equal(
                 globalStake[StakeStatus.Undelegated],
             );
+        },
+    });
+}
+
+/**
+ * Returns a FunctionAssertion for `unstake` which assumes that the input exceeds the amount that
+ * can be unstaked. Checks that the call reverts with an InsufficientBalanceError. Note that we
+ * close over `withdrawableStake` to avoid duplicating work done in the assertion generator.
+ */
+export function invalidUnstakeAssertion(
+    deployment: DeploymentManager,
+    withdrawableStake: BigNumber,
+): FunctionAssertion<[BigNumber], void, void> {
+    return new FunctionAssertion<[BigNumber], void, void>(deployment.staking.stakingWrapper, 'unstake', {
+        after: async (_beforeInfo: void, result: FunctionResult, args: [BigNumber]) => {
+            // Ensure that the tx reverted.
+            expect(result.success).to.be.false();
+
+            const [amount] = args;
+            expect(result.data).to.equal(new StakingRevertErrors.InsufficientBalanceError(amount, withdrawableStake));
         },
     });
 }

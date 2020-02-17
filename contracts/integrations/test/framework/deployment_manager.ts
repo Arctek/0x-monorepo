@@ -4,11 +4,10 @@ import {
     ERC20BridgeProxyContract,
     ERC20ProxyContract,
     ERC721ProxyContract,
-    IAssetDataContract,
     MultiAssetProxyContract,
     StaticCallProxyContract,
 } from '@0x/contracts-asset-proxy';
-import { DevUtilsContract } from '@0x/contracts-dev-utils';
+import { artifacts as devUtilsArtifacts, DevUtilsContract } from '@0x/contracts-dev-utils';
 import { artifacts as ERC1155Artifacts, ERC1155MintableContract } from '@0x/contracts-erc1155';
 import { artifacts as ERC20Artifacts, DummyERC20TokenContract, WETH9Contract } from '@0x/contracts-erc20';
 import { artifacts as ERC721Artifacts, DummyERC721TokenContract } from '@0x/contracts-erc721';
@@ -22,6 +21,7 @@ import {
 } from '@0x/contracts-staking';
 import { BlockchainTestsEnvironment, constants } from '@0x/contracts-test-utils';
 import { BigNumber } from '@0x/utils';
+import { Web3Wrapper } from '@0x/web3-wrapper';
 import { TxData } from 'ethereum-types';
 import * as _ from 'lodash';
 
@@ -145,7 +145,7 @@ export class DeploymentManager {
             exchangeArtifacts.Exchange,
             environment.provider,
             txDefaults,
-            { ...ERC20Artifacts, ...exchangeArtifacts, ...stakingArtifacts },
+            { ...ERC20Artifacts, ...exchangeArtifacts, ...stakingArtifacts, ...assetProxyArtifacts },
             new BigNumber(chainId),
         );
         const governor = await ZeroExGovernorContract.deployFrom0xArtifactAsync(
@@ -195,12 +195,19 @@ export class DeploymentManager {
             exchange,
             staking.stakingProxy,
         ]);
-
-        const devUtils = new DevUtilsContract(constants.NULL_ADDRESS, environment.provider);
-        const assetDataEncoder = new IAssetDataContract(constants.NULL_ADDRESS, environment.provider);
+        const devUtils = await DevUtilsContract.deployWithLibrariesFrom0xArtifactAsync(
+            devUtilsArtifacts.DevUtils,
+            devUtilsArtifacts,
+            environment.provider,
+            environment.txDefaults,
+            devUtilsArtifacts,
+            exchange.address,
+            constants.NULL_ADDRESS,
+        );
 
         // Construct the new instance and return it.
         return new DeploymentManager(
+            environment.web3Wrapper,
             assetProxies,
             governor,
             exchange,
@@ -210,7 +217,6 @@ export class DeploymentManager {
             accounts,
             txDefaults,
             devUtils,
-            assetDataEncoder,
         );
     }
 
@@ -516,6 +522,7 @@ export class DeploymentManager {
     }
 
     protected constructor(
+        public web3Wrapper: Web3Wrapper,
         public assetProxies: AssetProxyContracts,
         public governor: ZeroExGovernorContract,
         public exchange: ExchangeContract,
@@ -525,7 +532,6 @@ export class DeploymentManager {
         public accounts: string[],
         public txDefaults: Partial<TxData>,
         public devUtils: DevUtilsContract,
-        public assetDataEncoder: IAssetDataContract,
     ) {}
 }
 // tslint:disable:max-file-line-count

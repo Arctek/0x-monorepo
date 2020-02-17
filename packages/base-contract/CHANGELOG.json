@@ -1,5 +1,66 @@
 [
     {
+        "version": "6.2.0",
+        "changes": [
+            {
+                "note": "Ignore bytecode with unlinked library references in constructor",
+                "pr": 2463
+            },
+            {
+                "note": "Add exported function `linkLibrariesInBytecode()`",
+                "pr": 2463
+            }
+        ],
+        "timestamp": 1581204851
+    },
+    {
+        "timestamp": 1580988106,
+        "version": "6.1.2",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "version": "6.1.1",
+        "changes": [
+            {
+                "note": "Throw Error when revert is StringRevertError",
+                "pr": 2453
+            }
+        ],
+        "timestamp": 1580811564
+    },
+    {
+        "version": "6.1.0",
+        "changes": [
+            {
+                "note": "Support catching empty reverts on live networks.",
+                "pr": 2433
+            }
+        ],
+        "timestamp": 1579682890
+    },
+    {
+        "timestamp": 1578272714,
+        "version": "6.0.3",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1576540892,
+        "version": "6.0.2",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
         "timestamp": 1575931811,
         "version": "6.0.1",
         "changes": [

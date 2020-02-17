@@ -1,5 +1,84 @@
 [
     {
+        "version": "3.6.0",
+        "changes": [
+            {
+                "note": "Add Broker and GodsUnchainedValidator artifacts",
+                "pr": 2469
+            },
+            {
+                "note": "Updated Forwarder artifact",
+                "pr": 2469
+            }
+        ],
+        "timestamp": 1581748629
+    },
+    {
+        "version": "3.5.0",
+        "changes": [
+            {
+                "note": "Update `DevUtils` artifact",
+                "pr": 2464
+            },
+            {
+                "note": "Remove `LibTransactionDecoder` artifact",
+                "pr": 2464
+            },
+            {
+                "note": "Update `IERC20BridgeSampler` artifact",
+                "pr": 2477
+            }
+        ],
+        "timestamp": 1581204851
+    },
+    {
+        "timestamp": 1580988106,
+        "version": "3.4.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "version": "3.4.0",
+        "changes": [
+            {
+                "note": "Update `DevUtils` artifact",
+                "pr": 2436
+            },
+            {
+                "note": "Update all artifacts.",
+                "pr": 2432
+            },
+            {
+                "note": "Update `IERC20BridgeSampler artifact",
+                "pr": 2427
+            }
+        ],
+        "timestamp": 1579682890
+    },
+    {
+        "version": "3.3.0",
+        "changes": [
+            {
+                "note": "Add updated `DevUtils` artifact.",
+                "pr": 2402
+            }
+        ],
+        "timestamp": 1578272714
+    },
+    {
+        "version": "3.2.0",
+        "changes": [
+            {
+                "note": "Add `IERC20BridgeSampler` artifact.",
+                "pr": 2353
+            }
+        ],
+        "timestamp": 1576540892
+    },
+    {
         "version": "3.1.0",
         "changes": [
             {

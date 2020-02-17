@@ -1,5 +1,66 @@
 [
     {
+        "timestamp": 1581748629,
+        "version": "4.3.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "version": "4.3.0",
+        "changes": [
+            {
+                "note": "Update Eth2Dai addresses in `DeploymentConstants`",
+                "pr": 2474
+            }
+        ],
+        "timestamp": 1581204851
+    },
+    {
+        "timestamp": 1580988106,
+        "version": "4.2.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "version": "4.2.0",
+        "changes": [
+            {
+                "note": "Update kovan addresses in `DeploymentConstants`",
+                "pr": 2459
+            },
+            {
+                "note": "Export `EvmBytecodeOutputLinkReferences` type.",
+                "pr": 2462
+            }
+        ],
+        "timestamp": 1580811564
+    },
+    {
+        "version": "4.1.0",
+        "changes": [
+            {
+                "note": "Replaced ethers with 0x ABI Encoder for decoding logs. Fixes decoding for arrays/objects.",
+                "pr": 2443
+            }
+        ],
+        "timestamp": 1579682890
+    },
+    {
+        "timestamp": 1578272714,
+        "version": "4.0.3",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
         "version": "4.0.2",
         "changes": [
             {
@@ -10,7 +71,8 @@
                 "note": "Add `DydxBridge` to `DeploymentConstants`.",
                 "pr": 2365
             }
-        ]
+        ],
+        "timestamp": 1576540892
     },
     {
         "timestamp": 1575931811,

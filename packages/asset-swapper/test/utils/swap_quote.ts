@@ -1,35 +1,34 @@
-import { SignedOrder } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 import * as _ from 'lodash';
 
+import { ERC20BridgeSource } from '../../src';
 import { constants } from '../../src/constants';
-import { MarketOperation, PrunedSignedOrder, SwapQuote } from '../../src/types';
+import { MarketOperation, SignedOrderWithFillableAmounts, SwapQuote } from '../../src/types';
 import { ProtocolFeeUtils } from '../../src/utils/protocol_fee_utils';
 
-export const getFullyFillableSwapQuoteWithNoFeesAsync = async (
+/**
+ * Creates a swap quote given orders.
+ */
+export async function getFullyFillableSwapQuoteWithNoFeesAsync(
     makerAssetData: string,
     takerAssetData: string,
-    orders: PrunedSignedOrder[],
+    orders: SignedOrderWithFillableAmounts[],
     operation: MarketOperation,
     gasPrice: BigNumber,
     protocolFeeUtils: ProtocolFeeUtils,
-): Promise<SwapQuote> => {
-    const makerAssetFillAmount = _.reduce(
-        orders,
-        (a: BigNumber, c: SignedOrder) => a.plus(c.makerAssetAmount),
-        constants.ZERO_AMOUNT,
-    );
-    const totalTakerAssetAmount = _.reduce(
-        orders,
-        (a: BigNumber, c: SignedOrder) => a.plus(c.takerAssetAmount),
-        constants.ZERO_AMOUNT,
-    );
+): Promise<SwapQuote> {
+    const makerAssetFillAmount = BigNumber.sum(...[0, ...orders.map(o => o.makerAssetAmount)]);
+    const totalTakerAssetAmount = BigNumber.sum(...[0, ...orders.map(o => o.takerAssetAmount)]);
     const quoteInfo = {
         makerAssetAmount: makerAssetFillAmount,
         feeTakerAssetAmount: constants.ZERO_AMOUNT,
         takerAssetAmount: totalTakerAssetAmount,
         totalTakerAssetAmount,
         protocolFeeInWeiAmount: await protocolFeeUtils.calculateWorstCaseProtocolFeeAsync(orders, gasPrice),
+    };
+
+    const breakdown = {
+        [ERC20BridgeSource.Native]: new BigNumber(1),
     };
 
     const quoteBase = {
@@ -39,6 +38,7 @@ export const getFullyFillableSwapQuoteWithNoFeesAsync = async (
         gasPrice,
         bestCaseQuoteInfo: quoteInfo,
         worstCaseQuoteInfo: quoteInfo,
+        sourceBreakdown: breakdown,
     };
 
     if (operation === MarketOperation.Buy) {
@@ -54,4 +54,4 @@ export const getFullyFillableSwapQuoteWithNoFeesAsync = async (
             takerAssetFillAmount: totalTakerAssetAmount,
         };
     }
-};
+}

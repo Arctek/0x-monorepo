@@ -1,6 +1,6 @@
-import { IAssetDataContract } from '@0x/contracts-asset-proxy';
+import { decodeERC20AssetData, decodeERC20BridgeAssetData } from '@0x/contracts-asset-proxy';
 import { ForwarderContract } from '@0x/contracts-exchange-forwarder';
-import { constants, expect, OrderStatus, provider } from '@0x/contracts-test-utils';
+import { constants, expect, OrderStatus } from '@0x/contracts-test-utils';
 import { AssetProxyId, OrderInfo, SignedOrder } from '@0x/types';
 import { BigNumber, hexUtils, RevertError } from '@0x/utils';
 import { TransactionReceiptWithDecodedLogs } from 'ethereum-types';
@@ -22,6 +22,7 @@ interface MarketSellOptions {
     forwarderFeeRecipientAddresses: string[];
     revertError: RevertError;
     bridgeExcessBuyAmount: BigNumber;
+    noopOrders: number[]; // Indices of orders expected to noop on _fillOrderNoThrow (e.g. cancelled orders)
 }
 
 interface MarketBuyOptions extends MarketSellOptions {
@@ -35,15 +36,14 @@ function areUnderlyingAssetsEqual(assetData1: string, assetData2: string): boole
         (assetProxyId1 === AssetProxyId.ERC20 || assetProxyId1 === AssetProxyId.ERC20Bridge) &&
         (assetProxyId2 === AssetProxyId.ERC20 || assetProxyId2 === AssetProxyId.ERC20Bridge)
     ) {
-        const assetDataDecoder = new IAssetDataContract(constants.NULL_ADDRESS, provider);
         const tokenAddress1 =
             assetProxyId1 === AssetProxyId.ERC20
-                ? assetDataDecoder.getABIDecodedTransactionData<string>('ERC20Token', assetData1)
-                : assetDataDecoder.getABIDecodedTransactionData<[string]>('ERC20Bridge', assetData1)[0];
+                ? decodeERC20AssetData(assetData1)
+                : decodeERC20BridgeAssetData(assetData1)[0];
         const tokenAddress2 =
             assetProxyId2 === AssetProxyId.ERC20
-                ? assetDataDecoder.getABIDecodedTransactionData<string>('ERC20Token', assetData2)
-                : assetDataDecoder.getABIDecodedTransactionData<[string]>('ERC20Bridge', assetData2)[0];
+                ? decodeERC20AssetData(assetData2)
+                : decodeERC20BridgeAssetData(assetData2)[0];
         return tokenAddress2 === tokenAddress1;
     } else {
         return false;
@@ -71,7 +71,7 @@ export class ForwarderTestFactory {
             orders.map(order => this._deployment.exchange.getOrderInfo(order).callAsync()),
         );
         const expectedOrderStatuses = orderInfoBefore.map((orderInfo, i) =>
-            fractionalNumberOfOrdersToFill >= i + 1 && orderInfo.orderStatus === OrderStatus.Fillable
+            fractionalNumberOfOrdersToFill >= i + 1 && !(options.noopOrders || []).includes(i)
                 ? OrderStatus.FullyFilled
                 : orderInfo.orderStatus,
         );
@@ -112,7 +112,7 @@ export class ForwarderTestFactory {
             orders.map(order => this._deployment.exchange.getOrderInfo(order).callAsync()),
         );
         const expectedOrderStatuses = orderInfoBefore.map((orderInfo, i) =>
-            fractionalNumberOfOrdersToFill >= i + 1 && orderInfo.orderStatus === OrderStatus.Fillable
+            fractionalNumberOfOrdersToFill >= i + 1 && !(options.noopOrders || []).includes(i)
                 ? OrderStatus.FullyFilled
                 : orderInfo.orderStatus,
         );
@@ -198,8 +198,8 @@ export class ForwarderTestFactory {
         for (const [i, order] of orders.entries()) {
             if (remainingOrdersToFill === 0) {
                 break;
-            } else if (ordersInfoBefore[i].orderStatus !== OrderStatus.Fillable) {
-                // If the order is not fillable, skip over it but still count it towards fractionalNumberOfOrdersToFill
+            } else if ((options.noopOrders || []).includes(i)) {
+                // If the order won't be filled, skip over it but still count it towards fractionalNumberOfOrdersToFill
                 remainingOrdersToFill = Math.max(remainingOrdersToFill - 1, 0);
                 continue;
             }

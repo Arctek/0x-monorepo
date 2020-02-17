@@ -1,3 +1,4 @@
+export { ContractAddresses } from '@0x/contract-addresses';
 export { WSOpts } from '@0x/mesh-rpc-client';
 export {
     AcceptedRejectedOrders,
@@ -14,7 +15,6 @@ export {
 export { APIOrder, Asset, AssetPairsItem, Order, SignedOrder } from '@0x/types';
 export { BigNumber } from '@0x/utils';
 export {
-    ConstructorStateMutability,
     DataItem,
     EIP1193Event,
     EIP1193Provider,
@@ -24,8 +24,6 @@ export {
     JSONRPCRequestPayload,
     JSONRPCResponseError,
     JSONRPCResponsePayload,
-    MethodAbi,
-    StateMutability,
     SupportedProvider,
     TupleDataItem,
     Web3JsProvider,
@@ -45,8 +43,6 @@ export {
     LiquidityForTakerMakerAssetDataPair,
     MarketBuySwapQuote,
     MarketSellSwapQuote,
-    PrunedSignedOrder,
-    SmartContractParamsInfo,
     SwapQuote,
     SwapQuoteConsumerBase,
     SwapQuoteConsumerOpts,
@@ -57,6 +53,14 @@ export {
     SwapQuoterError,
     SwapQuoterOpts,
     SwapQuoteConsumerError,
+    SignedOrderWithFillableAmounts,
+    SwapQuoteOrdersBreakdown,
 } from './types';
+export {
+    ERC20BridgeSource,
+    CollapsedFill,
+    NativeCollapsedFill,
+    OptimizedMarketOrder,
+} from './utils/market_operation_utils/types';
 export { affiliateFeeUtils } from './utils/affiliate_fee_utils';
 export { ProtocolFeeUtils } from './utils/protocol_fee_utils';

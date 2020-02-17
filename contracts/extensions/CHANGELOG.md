@@ -5,6 +5,34 @@ Edit the package's CHANGELOG.json file only.
 
 CHANGELOG
 
+## v6.1.1 - _February 15, 2020_
+
+    * Dependencies updated
+
+## v6.1.0 - _February 8, 2020_
+
+    * Export `EvmBytecodeOutputLinkReferences` type. (#2462)
+
+## v6.0.0 - _February 6, 2020_
+
+    * New year, new me: remove everything, add MixinWethUtils and LibAssetDataTransfer (#2455)
+
+## v5.1.4 - _February 4, 2020_
+
+    * Dependencies updated
+
+## v5.1.3 - _January 22, 2020_
+
+    * Dependencies updated
+
+## v5.1.2 - _January 6, 2020_
+
+    * Dependencies updated
+
+## v5.1.1 - _December 17, 2019_
+
+    * Dependencies updated
+
 ## v5.1.0 - _December 9, 2019_
 
     * Export function `encodeDutchAuctionAssetData` (#2373)

@@ -1,5 +1,79 @@
 [
     {
+        "timestamp": 1581748629,
+        "version": "9.1.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "version": "9.1.0",
+        "changes": [
+            {
+                "note": "Export `EvmBytecodeOutputLinkReferences`",
+                "pr": 2462
+            }
+        ],
+        "timestamp": 1581204851
+    },
+    {
+        "timestamp": 1580988106,
+        "version": "9.0.7",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1580811564,
+        "version": "9.0.6",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1579744659,
+        "version": "9.0.5",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "version": "9.0.4",
+        "changes": [
+            {
+                "note": "Update exports.",
+                "pr": 2432
+            }
+        ],
+        "timestamp": 1579682890
+    },
+    {
+        "timestamp": 1578272714,
+        "version": "9.0.3",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1576540892,
+        "version": "9.0.2",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
         "timestamp": 1575931811,
         "version": "9.0.1",
         "changes": [

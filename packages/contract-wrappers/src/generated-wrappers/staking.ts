@@ -10,6 +10,7 @@ import {
     SubscriptionManager,
     PromiseWithTransactionHash,
     methodAbiToFunctionSignature,
+    linkLibrariesInBytecode,
 } from '@0x/base-contract';
 import { schemas } from '@0x/json-schemas';
 import {
@@ -27,7 +28,7 @@ import {
     TxDataPayable,
     SupportedProvider,
 } from 'ethereum-types';
-import { BigNumber, classUtils, logUtils, providerUtils } from '@0x/utils';
+import { BigNumber, classUtils, hexUtils, logUtils, providerUtils } from '@0x/utils';
 import { EventCallback, IndexedFilterValues, SimpleContractArtifact } from '@0x/types';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import { assert } from '@0x/assert';
@@ -165,6 +166,7 @@ export interface StakingUnstakeEventArgs extends DecodedLogArgs {
 }
 
 /* istanbul ignore next */
+// tslint:disable:array-type
 // tslint:disable:no-parameter-reassignment
 // tslint:disable-next-line:class-name
 export class StakingContract extends BaseContract {
@@ -180,8 +182,6 @@ export class StakingContract extends BaseContract {
         supportedProvider: SupportedProvider,
         txDefaults: Partial<TxData>,
         logDecodeDependencies: { [contractName: string]: ContractArtifact | SimpleContractArtifact },
-        wethAddress: string,
-        zrxVaultAddress: string,
     ): Promise<StakingContract> {
         assert.doesConformToSchema('txDefaults', txDefaults, schemas.txDataSchema, [
             schemas.addressSchema,
@@ -200,24 +200,48 @@ export class StakingContract extends BaseContract {
                 logDecodeDependenciesAbiOnly[key] = logDecodeDependencies[key].compilerOutput.abi;
             }
         }
-        return StakingContract.deployAsync(
-            bytecode,
-            abi,
-            provider,
-            txDefaults,
-            logDecodeDependenciesAbiOnly,
-            wethAddress,
-            zrxVaultAddress,
-        );
+        return StakingContract.deployAsync(bytecode, abi, provider, txDefaults, logDecodeDependenciesAbiOnly);
     }
+
+    public static async deployWithLibrariesFrom0xArtifactAsync(
+        artifact: ContractArtifact,
+        libraryArtifacts: { [libraryName: string]: ContractArtifact },
+        supportedProvider: SupportedProvider,
+        txDefaults: Partial<TxData>,
+        logDecodeDependencies: { [contractName: string]: ContractArtifact | SimpleContractArtifact },
+    ): Promise<StakingContract> {
+        assert.doesConformToSchema('txDefaults', txDefaults, schemas.txDataSchema, [
+            schemas.addressSchema,
+            schemas.numberSchema,
+            schemas.jsNumber,
+        ]);
+        if (artifact.compilerOutput === undefined) {
+            throw new Error('Compiler output not found in the artifact file');
+        }
+        const provider = providerUtils.standardizeOrThrow(supportedProvider);
+        const abi = artifact.compilerOutput.abi;
+        const logDecodeDependenciesAbiOnly: { [contractName: string]: ContractAbi } = {};
+        if (Object.keys(logDecodeDependencies) !== undefined) {
+            for (const key of Object.keys(logDecodeDependencies)) {
+                logDecodeDependenciesAbiOnly[key] = logDecodeDependencies[key].compilerOutput.abi;
+            }
+        }
+        const libraryAddresses = await StakingContract._deployLibrariesAsync(
+            artifact,
+            libraryArtifacts,
+            new Web3Wrapper(provider),
+            txDefaults,
+        );
+        const bytecode = linkLibrariesInBytecode(artifact, libraryAddresses);
+        return StakingContract.deployAsync(bytecode, abi, provider, txDefaults, logDecodeDependenciesAbiOnly);
+    }
+
     public static async deployAsync(
         bytecode: string,
         abi: ContractAbi,
         supportedProvider: SupportedProvider,
         txDefaults: Partial<TxData>,
         logDecodeDependencies: { [contractName: string]: ContractAbi },
-        wethAddress: string,
-        zrxVaultAddress: string,
     ): Promise<StakingContract> {
         assert.isHexString('bytecode', bytecode);
         assert.doesConformToSchema('txDefaults', txDefaults, schemas.txDataSchema, [
@@ -227,14 +251,10 @@ export class StakingContract extends BaseContract {
         ]);
         const provider = providerUtils.standardizeOrThrow(supportedProvider);
         const constructorAbi = BaseContract._lookupConstructorAbi(abi);
-        [wethAddress, zrxVaultAddress] = BaseContract._formatABIDataItemList(
-            constructorAbi.inputs,
-            [wethAddress, zrxVaultAddress],
-            BaseContract._bigNumberToString,
-        );
+        [] = BaseContract._formatABIDataItemList(constructorAbi.inputs, [], BaseContract._bigNumberToString);
         const iface = new ethers.utils.Interface(abi);
         const deployInfo = iface.deployFunction;
-        const txData = deployInfo.encode(bytecode, [wethAddress, zrxVaultAddress]);
+        const txData = deployInfo.encode(bytecode, []);
         const web3Wrapper = new Web3Wrapper(provider);
         const txDataWithDefaults = await BaseContract._applyDefaultsToContractTxDataAsync(
             {
@@ -253,7 +273,7 @@ export class StakingContract extends BaseContract {
             txDefaults,
             logDecodeDependencies,
         );
-        contractInstance.constructorArgs = [wethAddress, zrxVaultAddress];
+        contractInstance.constructorArgs = [];
         return contractInstance;
     }
 
@@ -262,22 +282,6 @@ export class StakingContract extends BaseContract {
      */
     public static ABI(): ContractAbi {
         const abi = [
-            {
-                inputs: [
-                    {
-                        name: 'wethAddress',
-                        type: 'address',
-                    },
-                    {
-                        name: 'zrxVaultAddress',
-                        type: 'address',
-                    },
-                ],
-                outputs: [],
-                payable: false,
-                stateMutability: 'nonpayable',
-                type: 'constructor',
-            },
             {
                 anonymous: false,
                 inputs: [
@@ -1615,12 +1619,58 @@ export class StakingContract extends BaseContract {
         return abi;
     }
 
+    protected static async _deployLibrariesAsync(
+        artifact: ContractArtifact,
+        libraryArtifacts: { [libraryName: string]: ContractArtifact },
+        web3Wrapper: Web3Wrapper,
+        txDefaults: Partial<TxData>,
+        libraryAddresses: { [libraryName: string]: string } = {},
+    ): Promise<{ [libraryName: string]: string }> {
+        const links = artifact.compilerOutput.evm.bytecode.linkReferences;
+        // Go through all linked libraries, recursively deploying them if necessary.
+        for (const link of Object.values(links)) {
+            for (const libraryName of Object.keys(link)) {
+                if (!libraryAddresses[libraryName]) {
+                    // Library not yet deployed.
+                    const libraryArtifact = libraryArtifacts[libraryName];
+                    if (!libraryArtifact) {
+                        throw new Error(`Missing artifact for linked library "${libraryName}"`);
+                    }
+                    // Deploy any dependent libraries used by this library.
+                    await StakingContract._deployLibrariesAsync(
+                        libraryArtifact,
+                        libraryArtifacts,
+                        web3Wrapper,
+                        txDefaults,
+                        libraryAddresses,
+                    );
+                    // Deploy this library.
+                    const linkedLibraryBytecode = linkLibrariesInBytecode(libraryArtifact, libraryAddresses);
+                    const txDataWithDefaults = await BaseContract._applyDefaultsToContractTxDataAsync(
+                        {
+                            data: linkedLibraryBytecode,
+                            ...txDefaults,
+                        },
+                        web3Wrapper.estimateGasAsync.bind(web3Wrapper),
+                    );
+                    const txHash = await web3Wrapper.sendTransactionAsync(txDataWithDefaults);
+                    logUtils.log(`transactionHash: ${txHash}`);
+                    const { contractAddress } = await web3Wrapper.awaitTransactionSuccessAsync(txHash);
+                    logUtils.log(`${libraryArtifact.contractName} successfully deployed at ${contractAddress}`);
+                    libraryAddresses[libraryArtifact.contractName] = contractAddress as string;
+                }
+            }
+        }
+        return libraryAddresses;
+    }
+
     public getFunctionSignature(methodName: string): string {
         const index = this._methodABIIndex[methodName];
         const methodAbi = StakingContract.ABI()[index] as MethodAbi; // tslint:disable-line:no-unnecessary-type-assertion
         const functionSignature = methodAbiToFunctionSignature(methodAbi);
         return functionSignature;
     }
+
     public getABIDecodedTransactionData<T>(methodName: string, callData: string): T {
         const functionSignature = this.getFunctionSignature(methodName);
         const self = (this as any) as StakingContract;
@@ -1628,6 +1678,7 @@ export class StakingContract extends BaseContract {
         const abiDecodedCallData = abiEncoder.strictDecode<T>(callData);
         return abiDecodedCallData;
     }
+
     public getABIDecodedReturnData<T>(methodName: string, callData: string): T {
         const functionSignature = this.getFunctionSignature(methodName);
         const self = (this as any) as StakingContract;
@@ -1635,6 +1686,7 @@ export class StakingContract extends BaseContract {
         const abiDecodedCallData = abiEncoder.strictDecodeReturnValue<T>(callData);
         return abiDecodedCallData;
     }
+
     public getSelector(methodName: string): string {
         const functionSignature = this.getFunctionSignature(methodName);
         const self = (this as any) as StakingContract;
@@ -1685,6 +1737,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -1735,6 +1788,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -1760,6 +1814,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<[BigNumber, BigNumber, BigNumber, BigNumber, BigNumber]>(
                     rawCallResult,
                 );
@@ -1782,6 +1837,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<string>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -1802,6 +1858,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<boolean>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -1821,6 +1878,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<number>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -1840,6 +1898,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<number>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -1867,6 +1926,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<BigNumber>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -1892,6 +1952,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<BigNumber>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -1949,6 +2010,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<string>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -1968,6 +2030,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<BigNumber>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -1987,6 +2050,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<BigNumber>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -2043,6 +2107,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -2094,6 +2159,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<BigNumber>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -2113,6 +2179,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<BigNumber>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -2167,6 +2234,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -2190,6 +2258,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<string[]>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -2215,6 +2284,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<BigNumber>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -2245,6 +2315,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<{
                     currentEpoch: BigNumber;
                     currentEpochBalance: BigNumber;
@@ -2282,6 +2353,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<{
                     currentEpoch: BigNumber;
                     currentEpochBalance: BigNumber;
@@ -2312,6 +2384,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<[BigNumber, number, BigNumber, number, number]>(
                     rawCallResult,
                 );
@@ -2347,6 +2420,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<{
                     currentEpoch: BigNumber;
                     currentEpochBalance: BigNumber;
@@ -2378,6 +2452,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<{ operator: string; operatorShare: number }>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -2408,6 +2483,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<{
                     feesCollected: BigNumber;
                     weightedStake: BigNumber;
@@ -2437,6 +2513,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<BigNumber>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -2468,6 +2545,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<{
                     currentEpoch: BigNumber;
                     currentEpochBalance: BigNumber;
@@ -2480,7 +2558,8 @@ export class StakingContract extends BaseContract {
         };
     }
     /**
-     * Returns the current weth contract address
+     * An overridable way to access the deployed WETH contract.
+     * Must be view to allow overrides to access state.
      * @returns wethContract The WETH contract instance.
      */
     public getWethContract(): ContractFunctionObj<string> {
@@ -2495,6 +2574,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<string>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -2503,7 +2583,8 @@ export class StakingContract extends BaseContract {
         };
     }
     /**
-     * Returns the current zrxVault address.
+     * An overridable way to access the deployed zrxVault.
+     * Must be view to allow overrides to access state.
      * @returns zrxVault The zrxVault contract.
      */
     public getZrxVault(): ContractFunctionObj<string> {
@@ -2518,6 +2599,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<string>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -2568,6 +2650,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -2618,6 +2701,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -2637,6 +2721,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<string>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -2656,6 +2741,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<BigNumber>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -2667,9 +2753,9 @@ export class StakingContract extends BaseContract {
      * Moves stake between statuses: 'undelegated' or 'delegated'.
      * Delegated stake can also be moved between pools.
      * This change comes into effect next epoch.
-     * @param from status to move stake out of.
-     * @param to status to move stake into.
-     * @param amount of stake to move.
+     * @param from Status to move stake out of.
+     * @param to Status to move stake into.
+     * @param amount Amount of stake to move.
      */
     public moveStake(
         from: { status: number | BigNumber; poolId: string },
@@ -2715,6 +2801,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -2734,6 +2821,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<string>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -2795,6 +2883,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -2819,6 +2908,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<string>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -2846,6 +2936,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<[BigNumber, BigNumber, BigNumber]>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -2896,6 +2987,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -2948,6 +3040,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -2998,6 +3091,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -3017,6 +3111,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<number>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -3037,6 +3132,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<BigNumber>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -3104,6 +3200,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -3120,7 +3217,7 @@ export class StakingContract extends BaseContract {
     /**
      * Stake ZRX tokens. Tokens are deposited into the ZRX Vault.
      * Unstake to retrieve the ZRX. Stake is in the 'Active' status.
-     * @param amount of ZRX to stake.
+     * @param amount Amount of ZRX to stake.
      */
     public stake(amount: BigNumber): ContractTxFunctionObj<void> {
         const self = (this as any) as StakingContract;
@@ -3161,6 +3258,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -3180,6 +3278,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<string>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -3187,6 +3286,10 @@ export class StakingContract extends BaseContract {
             },
         };
     }
+    /**
+     * Change the owner of this contract.
+     * @param newOwner New owner address.
+     */
     public transferOwnership(newOwner: string): ContractTxFunctionObj<void> {
         const self = (this as any) as StakingContract;
         assert.isString('newOwner', newOwner);
@@ -3226,6 +3329,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -3237,7 +3341,7 @@ export class StakingContract extends BaseContract {
      * Unstake. Tokens are withdrawn from the ZRX Vault and returned to
      * the staker. Stake must be in the 'undelegated' status in both the
      * current and next epoch in order to be unstaked.
-     * @param amount of ZRX to unstake.
+     * @param amount Amount of ZRX to unstake.
      */
     public unstake(amount: BigNumber): ContractTxFunctionObj<void> {
         const self = (this as any) as StakingContract;
@@ -3278,6 +3382,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -3298,6 +3403,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<boolean>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -3317,6 +3423,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<BigNumber>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -3368,6 +3475,7 @@ export class StakingContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -3406,6 +3514,7 @@ export class StakingContract extends BaseContract {
         );
         return subscriptionToken;
     }
+
     /**
      * Cancel a subscription
      * @param subscriptionToken Subscription token returned by `subscribe()`
@@ -3413,12 +3522,14 @@ export class StakingContract extends BaseContract {
     public unsubscribe(subscriptionToken: string): void {
         this._subscriptionManager.unsubscribe(subscriptionToken);
     }
+
     /**
      * Cancels all existing subscriptions
      */
     public unsubscribeAll(): void {
         this._subscriptionManager.unsubscribeAll();
     }
+
     /**
      * Gets historical logs without creating a subscription
      * @param eventName The Staking contract event you would like to subscribe to.
@@ -3444,6 +3555,7 @@ export class StakingContract extends BaseContract {
         );
         return logs;
     }
+
     constructor(
         address: string,
         supportedProvider: SupportedProvider,

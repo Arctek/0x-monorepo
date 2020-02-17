@@ -1,5 +1,74 @@
 [
     {
+        "timestamp": 1581748629,
+        "version": "1.1.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "version": "1.1.0",
+        "changes": [
+            {
+                "note": "Refactor mixins into public libraries.",
+                "pr": 2464
+            },
+            {
+                "note": "Remove `LibTransactionDecoder` export",
+                "pr": 2464
+            }
+        ],
+        "timestamp": 1581204851
+    },
+    {
+        "timestamp": 1580988106,
+        "version": "1.0.6",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1580811564,
+        "version": "1.0.5",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1579682890,
+        "version": "1.0.4",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "version": "1.0.3",
+        "changes": [
+            {
+                "note": "Fixed ERC721 duplicate token ID bug",
+                "pr": 2400
+            }
+        ],
+        "timestamp": 1578272714
+    },
+    {
+        "timestamp": 1576540892,
+        "version": "1.0.2",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
         "timestamp": 1575931811,
         "version": "1.0.1",
         "changes": [

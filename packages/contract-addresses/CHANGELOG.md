@@ -5,6 +5,47 @@ Edit the package's CHANGELOG.json file only.
 
 CHANGELOG
 
+## v4.6.0 - _February 15, 2020_
+
+    * Added `ChainlinkStopLimit` addresses (mainnet, ropsten, rinkeby) (#2473)
+    * Added `CurveBridge` address (mainnet) (#2483)
+    * Update `ERC20BridgeSampler` address (mainnet, kovan) (#2483)
+
+## v4.5.0 - _February 8, 2020_
+
+    * Update `ERC20BridgeSampler` and `Eth2Dai` on mainnet and kovan. (#2474)
+    * Update `ERC20BridgeSampler` address on mainnet and kovan. (#2476)
+    * Removed OrderValidator and DutchAuction addresses (#2469)
+    * Added Broker and GodsUnchainedValidator addresses (#2469)
+    * Updated Forwarder addresses (#2469)
+    * Update `ERC20BridgeSampler` address on mainnet and kovan. (#2477)
+
+## v4.4.0 - _February 4, 2020_
+
+    * Update `ERC20BridgeSampler` on mainnet and kovan. (#2459)
+    * Remove `libTransactionDecoder` (#2456)
+    * Update snapshot addresses (#2464)
+
+## v4.3.0 - _January 22, 2020_
+
+    * Update `DevUtils` mainnet, Ropsten, Rinkeby, Kovan addresses with PR#2440 changes (#2446)
+    * Update `DevUtils` mainnet, Ropsten, Rinkeby, Kovan addresses (#2436)
+    * Update `ERC20BridgeSampler` address on kovan and mainnet. (#2427)
+
+## v4.2.0 - _January 6, 2020_
+
+    * Added new `DevUtils` addresses (#2402)
+    * Update ERC20BridgeSampler address on Kovan and mainnet. (#2405)
+    * Added DydxBridge Contract to contract-addresses (#2390)
+    * Update `UniswapBridge` mainnet address. (#2390)
+    * Update `KyberBridge` mainnet address. (#2390)
+    * Update `Forwarder` mainnet address. (#2390)
+    * Added ChaiBridge Contract to contract-addresses (#2390)
+
+## v4.1.0 - _December 17, 2019_
+
+    * Addition of ERC20BridgeSampler + Kyber Erc20Bridge Contract in contract-addresses (#2353)
+
 ## v4.0.0 - _December 2, 2019_
 
     * `1337` addresses updated with Forwarder deployed after Exchange is configured (#2368)

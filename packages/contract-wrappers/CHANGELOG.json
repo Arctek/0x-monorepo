@@ -1,5 +1,97 @@
 [
     {
+        "version": "13.6.0",
+        "changes": [
+            {
+                "note": "Add Broker and GodsUnchainedValidator wrappers",
+                "pr": 2469
+            },
+            {
+                "note": "Updated Forwarder wrapper",
+                "pr": 2469
+            }
+        ],
+        "timestamp": 1581748629
+    },
+    {
+        "version": "13.5.0",
+        "changes": [
+            {
+                "note": "Export `EvmBytecodeOutputLinkReferences` type.",
+                "pr": 2462
+            },
+            {
+                "note": "Remove `LibTransactionDecoder`",
+                "pr": 2464
+            },
+            {
+                "note": "Update `IERC20BridgeSampler` wrapper",
+                "pr": 2477
+            }
+        ],
+        "timestamp": 1581204851
+    },
+    {
+        "timestamp": 1580988106,
+        "version": "13.4.2",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1580811564,
+        "version": "13.4.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "version": "13.4.0",
+        "changes": [
+            {
+                "note": "Update `DevUtils` wrapper",
+                "pr": 2436
+            },
+            {
+                "note": "Update all wrappers.",
+                "pr": 2432
+            },
+            {
+                "note": "Regenerate wrappers to catch empty reverts on live networks.",
+                "pr": 2433
+            },
+            {
+                "note": "Update `IERC20BridgeSampler`",
+                "pr": 2427
+            }
+        ],
+        "timestamp": 1579682890
+    },
+    {
+        "version": "13.3.0",
+        "changes": [
+            {
+                "note": "Added updated `DevUtils` wrapper",
+                "pr": 2402
+            }
+        ],
+        "timestamp": 1578272714
+    },
+    {
+        "version": "13.2.0",
+        "changes": [
+            {
+                "note": "Add `IERC20BridgeSampler` wrapper",
+                "pr": 2353
+            }
+        ],
+        "timestamp": 1576540892
+    },
+    {
         "version": "13.1.0",
         "changes": [
             {

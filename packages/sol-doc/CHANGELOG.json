@@ -1,5 +1,60 @@
 [
     {
+        "timestamp": 1581204851,
+        "version": "3.1.4",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1580988106,
+        "version": "3.1.3",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1580811564,
+        "version": "3.1.2",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1579682890,
+        "version": "3.1.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "version": "3.1.0",
+        "changes": [
+            {
+                "note": "Rewrite the whole thing to use custom AST walker.",
+                "pr": 2391
+            }
+        ],
+        "timestamp": 1578272714
+    },
+    {
+        "timestamp": 1576540892,
+        "version": "3.0.2",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
         "timestamp": 1575931811,
         "version": "3.0.1",
         "changes": [

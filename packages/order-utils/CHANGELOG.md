@@ -5,6 +5,36 @@ Edit the package's CHANGELOG.json file only.
 
 CHANGELOG
 
+## v10.2.1 - _February 15, 2020_
+
+    * Dependencies updated
+
+## v10.2.0 - _February 8, 2020_
+
+    * Remove use of ambient `DevUtils` instances. (#2462)
+    * Make hash computing tooling non-async again. (#2462)
+    * Add `transactionHashUtils`. (#2462)
+
+## v10.1.3 - _February 6, 2020_
+
+    * Dependencies updated
+
+## v10.1.2 - _February 4, 2020_
+
+    * Dependencies updated
+
+## v10.1.1 - _January 22, 2020_
+
+    * Dependencies updated
+
+## v10.1.0 - _January 6, 2020_
+
+    * Export `isERC20AssetData`, `isERC20BridgeAssetData` and other equivalents. (#2421)
+
+## v10.0.1 - _December 17, 2019_
+
+    * Dependencies updated
+
 ## v10.0.0 - _December 9, 2019_
 
     * Removed from assetDataUtils: individual decoding functions and assert functions (#2388)

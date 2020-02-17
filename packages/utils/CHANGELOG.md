@@ -5,6 +5,29 @@ Edit the package's CHANGELOG.json file only.
 
 CHANGELOG
 
+## v5.4.0 - _February 8, 2020_
+
+    * Add `toTokenUnitAmount` and `fromTokenUnitAmount` (#2462)
+    * Add `hexUtils.isHex` (#2462)
+    * Accept `Buffer` type in `hexUtils.toHex()` (#2462)
+
+## v5.3.0 - _February 6, 2020_
+
+    * Added Broker, MixinWethUtils revert errors (#2455)
+    * Moved LibAssetDataTransfer revert errors into their own file (#2455)
+
+## v5.2.0 - _January 22, 2020_
+
+    * Allow for strict decoding of return values. (#2433)
+
+## v5.1.2 - _January 6, 2020_
+
+    * Dependencies updated
+
+## v5.1.1 - _December 17, 2019_
+
+    * Dependencies updated
+
 ## v5.1.0 - _December 9, 2019_
 
     * Added hex_utils (#2373)

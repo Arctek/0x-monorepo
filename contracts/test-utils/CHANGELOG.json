@@ -1,5 +1,77 @@
 [
     {
+        "timestamp": 1581748629,
+        "version": "5.1.5",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1581204851,
+        "version": "5.1.4",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1580988106,
+        "version": "5.1.3",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1580811564,
+        "version": "5.1.2",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1579682890,
+        "version": "5.1.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "version": "5.1.0",
+        "changes": [
+            {
+                "note": "Added ERC20BridgeProxy to list of unlocked accounts on mainnet fork",
+                "pr": 2401
+            },
+            {
+                "note": "Add `blockchainTests.live()` for live network tests.",
+                "pr": 2407
+            },
+            {
+                "note": "Add modifiers to `blockchainTests.fork()`.",
+                "pr": 2407
+            }
+        ],
+        "timestamp": 1578272714
+    },
+    {
+        "timestamp": 1576540892,
+        "version": "5.0.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
         "version": "5.0.0",
         "changes": [
             {

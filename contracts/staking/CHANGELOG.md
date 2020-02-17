@@ -5,6 +5,35 @@ Edit the package's CHANGELOG.json file only.
 
 CHANGELOG
 
+## v2.0.8 - _February 15, 2020_
+
+    * Dependencies updated
+
+## v2.0.7 - _February 8, 2020_
+
+    * Fix revert for `LibFixedMath.mul(x, 0)`. (#2462)
+    * Fix broken tests. (#2462)
+
+## v2.0.6 - _February 6, 2020_
+
+    * Dependencies updated
+
+## v2.0.5 - _February 4, 2020_
+
+    * Dependencies updated
+
+## v2.0.4 - _January 22, 2020_
+
+    * Dependencies updated
+
+## v2.0.3 - _January 6, 2020_
+
+    * Dependencies updated
+
+## v2.0.2 - _December 17, 2019_
+
+    * Dependencies updated
+
 ## v2.0.1 - _December 9, 2019_
 
     * Dependencies updated

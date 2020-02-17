@@ -46,7 +46,7 @@ export class ContractWrappers {
      */
     public coordinator: CoordinatorContract;
     /**
-     * An instance of the StakingContract class containing methods for interacting with the Coordinator extension contract.
+     * An instance of the StakingContract class containing methods for interacting with the Staking contracts.
      */
     public staking: StakingContract;
 

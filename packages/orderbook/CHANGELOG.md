@@ -5,6 +5,34 @@ Edit the package's CHANGELOG.json file only.
 
 CHANGELOG
 
+## v2.2.1 - _February 15, 2020_
+
+    * Dependencies updated
+
+## v2.2.0 - _February 8, 2020_
+
+    * Use updated `order-utils` with non-async hash functions. (#2462)
+
+## v2.1.2 - _February 6, 2020_
+
+    * Dependencies updated
+
+## v2.1.1 - _February 4, 2020_
+
+    * Dependencies updated
+
+## v2.1.0 - _January 22, 2020_
+
+    * Added `getBatchOrdersAsync` for fetching batches of orders (#2427)
+
+## v2.0.1 - _January 6, 2020_
+
+    * Dependencies updated
+
+## v2.0.0 - _December 17, 2019_
+
+    * Change OrderStore functions to be async, allowing for Database adapters (#2393)
+
 ## v1.0.1 - _December 9, 2019_
 
     * Dependencies updated

@@ -5,6 +5,38 @@ Edit the package's CHANGELOG.json file only.
 
 CHANGELOG
 
+## v3.2.1 - _February 15, 2020_
+
+    * Dependencies updated
+
+## v3.2.0 - _February 8, 2020_
+
+    * Fix broken tests. (#2462)
+    * Remove dependency on `@0x/contracts-dev-utils` (#2462)
+    * Add asset data decoding functions (#2462)
+
+## v3.1.3 - _February 6, 2020_
+
+    * Dependencies updated
+
+## v3.1.2 - _February 4, 2020_
+
+    * Dependencies updated
+
+## v3.1.1 - _January 22, 2020_
+
+    * Dependencies updated
+
+## v3.1.0 - _January 6, 2020_
+
+    * Integration tests for DydxBridge with ERC20BridgeProxy. (#2401)
+    * Fix `UniswapBridge` token -> token transfer call. (#2412)
+    * Fix `KyberBridge` incorrect `minConversionRate` calculation. (#2412)
+
+## v3.0.2 - _December 17, 2019_
+
+    * Dependencies updated
+
 ## v3.0.1 - _December 9, 2019_
 
     * Dependencies updated
@@ -26,6 +58,7 @@ CHANGELOG
 ## v2.3.0-beta.4 - _December 2, 2019_
 
     * Implement `KyberBridge`. (#2352)
+    * Implement `DydxBridge`. (#2365)
 
 ## v2.3.0-beta.3 - _November 20, 2019_
 

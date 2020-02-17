@@ -5,6 +5,31 @@ Edit the package's CHANGELOG.json file only.
 
 CHANGELOG
 
+## v6.2.0 - _February 8, 2020_
+
+    * Ignore bytecode with unlinked library references in constructor (#2463)
+    * Add exported function `linkLibrariesInBytecode()` (#2463)
+
+## v6.1.2 - _February 6, 2020_
+
+    * Dependencies updated
+
+## v6.1.1 - _February 4, 2020_
+
+    * Throw Error when revert is StringRevertError (#2453)
+
+## v6.1.0 - _January 22, 2020_
+
+    * Support catching empty reverts on live networks. (#2433)
+
+## v6.0.3 - _January 6, 2020_
+
+    * Dependencies updated
+
+## v6.0.2 - _December 17, 2019_
+
+    * Dependencies updated
+
 ## v6.0.1 - _December 9, 2019_
 
     * Dependencies updated

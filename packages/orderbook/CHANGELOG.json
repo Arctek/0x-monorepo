@@ -1,12 +1,69 @@
 [
     {
+        "timestamp": 1581748629,
+        "version": "2.2.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "version": "2.2.0",
+        "changes": [
+            {
+                "note": "Use updated `order-utils` with non-async hash functions.",
+                "pr": 2462
+            }
+        ],
+        "timestamp": 1581204851
+    },
+    {
+        "timestamp": 1580988106,
+        "version": "2.1.2",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1580811564,
+        "version": "2.1.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "version": "2.1.0",
+        "changes": [
+            {
+                "note": "Added `getBatchOrdersAsync` for fetching batches of orders",
+                "pr": 2427
+            }
+        ],
+        "timestamp": 1579682890
+    },
+    {
+        "timestamp": 1578272714,
+        "version": "2.0.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
         "version": "2.0.0",
         "changes": [
             {
                 "note": "Change OrderStore functions to be async, allowing for Database adapters",
                 "pr": 2393
             }
-        ]
+        ],
+        "timestamp": 1576540892
     },
     {
         "timestamp": 1575931811,

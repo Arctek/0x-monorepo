@@ -79,6 +79,8 @@ TODO.md
 .vscode
 
 # generated contract artifacts/
+contracts/broker/generated-artifacts/
+contracts/broker/test/generated-artifacts/
 contracts/erc20-bridge-sampler/generated-artifacts/
 contracts/erc20-bridge-sampler/test/generated-artifacts/
 contracts/integrations/generated-artifacts/
@@ -113,6 +115,7 @@ packages/sol-tracing-utils/test/fixtures/artifacts/
 python-packages/contract_artifacts/src/zero_ex/contract_artifacts/artifacts/
 
 # generated truffle contract artifacts/
+contracts/broker/build/
 contracts/erc20-bridge-sampler/build/
 contracts/staking/build/
 contracts/coordinator/build/
@@ -129,6 +132,8 @@ contracts/exchange-forwarder/build/
 contracts/dev-utils/build/
 
 # generated contract wrappers
+contracts/broker/generated-wrappers/
+contracts/broker/test/generated-wrappers/
 packages/python-contract-wrappers/generated/
 contracts/erc20-bridge-sampler/generated-wrappers/
 contracts/erc20-bridge-sampler/test/generated-wrappers/
@@ -160,33 +165,7 @@ contracts/exchange-forwarder/generated-wrappers/
 contracts/exchange-forwarder/test/generated-wrappers/
 contracts/dev-utils/generated-wrappers/
 contracts/dev-utils/test/generated-wrappers/
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/dev_utils/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/erc20_token/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/exchange/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/asset_proxy_owner/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/coordinator/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/coordinator_registry/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/dummy_erc20_token/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/dummy_erc721_token/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/dutch_auction/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/erc1155_mintable/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/erc1155_proxy/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/erc20_bridge_proxy/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/erc20_proxy/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/erc721_proxy/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/erc721_token/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/forwarder/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/i_asset_proxy/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/i_validator/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/i_wallet/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/multi_asset_proxy/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/order_validator/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/staking/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/staking_proxy/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/static_call_proxy/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/weth9/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/zrx_token/__init__.py
-python-packages/contract_wrappers/src/zero_ex/contract_wrappers/zrx_vault/__init__.py
+python-packages/contract_wrappers/src/zero_ex/contract_wrappers/*/__init__.py
 
 # solc-bin in sol-compiler
 packages/sol-compiler/solc_bin/

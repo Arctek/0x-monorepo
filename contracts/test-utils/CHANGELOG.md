@@ -5,6 +5,36 @@ Edit the package's CHANGELOG.json file only.
 
 CHANGELOG
 
+## v5.1.5 - _February 15, 2020_
+
+    * Dependencies updated
+
+## v5.1.4 - _February 8, 2020_
+
+    * Dependencies updated
+
+## v5.1.3 - _February 6, 2020_
+
+    * Dependencies updated
+
+## v5.1.2 - _February 4, 2020_
+
+    * Dependencies updated
+
+## v5.1.1 - _January 22, 2020_
+
+    * Dependencies updated
+
+## v5.1.0 - _January 6, 2020_
+
+    * Added ERC20BridgeProxy to list of unlocked accounts on mainnet fork (#2401)
+    * Add `blockchainTests.live()` for live network tests. (#2407)
+    * Add modifiers to `blockchainTests.fork()`. (#2407)
+
+## v5.0.1 - _December 17, 2019_
+
+    * Dependencies updated
+
 ## v5.0.0 - _December 9, 2019_
 
     * Removed `hex_utils.ts`. Moved to @0x/utils (#2373)

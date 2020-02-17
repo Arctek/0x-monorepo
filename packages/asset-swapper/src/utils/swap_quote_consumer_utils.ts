@@ -1,5 +1,6 @@
 import { ContractAddresses } from '@0x/contract-addresses';
-import { DevUtilsContract, WETH9Contract } from '@0x/contract-wrappers';
+import { WETH9Contract } from '@0x/contract-wrappers';
+import { assetDataUtils } from '@0x/order-utils';
 import { SignedOrder } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 import { SupportedProvider, Web3Wrapper } from '@0x/web3-wrapper';
@@ -14,6 +15,7 @@ import {
     SwapQuoteConsumerError,
     SwapQuoteExecutionOpts,
 } from '../types';
+import { utils } from '../utils/utils';
 
 import { assert } from './assert';
 
@@ -64,7 +66,7 @@ export const swapQuoteConsumerUtils = {
         return _.every(orders, order => swapQuoteConsumerUtils.isValidForwarderSignedOrder(order, wethAssetData));
     },
     isValidForwarderSignedOrder(order: SignedOrder, wethAssetData: string): boolean {
-        return order.takerAssetData === wethAssetData;
+        return utils.isExactAssetData(order.takerAssetData, wethAssetData);
     },
     async getExtensionContractTypeForSwapQuoteAsync(
         quote: SwapQuote,
@@ -72,8 +74,7 @@ export const swapQuoteConsumerUtils = {
         provider: Provider,
         opts: Partial<GetExtensionContractTypeOpts>,
     ): Promise<ExtensionContractType> {
-        const devUtils = new DevUtilsContract(contractAddresses.devUtils, provider);
-        const wethAssetData = await devUtils.encodeERC20AssetData(contractAddresses.etherToken).callAsync();
+        const wethAssetData = assetDataUtils.encodeERC20AssetData(contractAddresses.etherToken);
         if (swapQuoteConsumerUtils.isValidForwarderSwapQuote(quote, wethAssetData)) {
             if (opts.takerAddress !== undefined) {
                 assert.isETHAddressHex('takerAddress', opts.takerAddress);

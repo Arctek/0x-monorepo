@@ -19,18 +19,21 @@
 pragma solidity ^0.5.9;
 pragma experimental ABIEncoderV2;
 
+import "@0x/contracts-extensions/contracts/src/LibAssetDataTransfer.sol";
 import "../src/MixinExchangeWrapper.sol";
-import "../src/libs/LibConstants.sol";
+import "../src/MixinReceiver.sol";
 
 
 contract TestForwarder is
-    LibConstants,
-    MixinExchangeWrapper
+    MixinExchangeWrapper,
+    MixinReceiver
 {
+    using LibAssetDataTransfer for bytes;
+
     // solhint-disable no-empty-blocks
     constructor ()
         public
-        LibConstants(
+        MixinExchangeWrapper(
             address(0),
             address(0)
         )
@@ -49,15 +52,12 @@ contract TestForwarder is
         );
     }
 
-    function transferAssetToSender(
+    function transferOut(
         bytes memory assetData,
         uint256 amount
     )
         public
     {
-        _transferAssetToSender(
-            assetData,
-            amount
-        );
+        assetData.transferOut(amount);
     }
 }

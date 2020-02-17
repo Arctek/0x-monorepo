@@ -1,5 +1,133 @@
 [
     {
+        "version": "4.6.0",
+        "changes": [
+            {
+                "note": "Added `ChainlinkStopLimit` addresses (mainnet, ropsten, rinkeby)",
+                "pr": 2473
+            },
+            {
+                "note": "Added `CurveBridge` address (mainnet)",
+                "pr": 2483
+            },
+            {
+                "note": "Update `ERC20BridgeSampler` address (mainnet, kovan)",
+                "pr": 2483
+            }
+        ],
+        "timestamp": 1581748629
+    },
+    {
+        "version": "4.5.0",
+        "changes": [
+            {
+                "note": "Update `ERC20BridgeSampler` and `Eth2Dai` on mainnet and kovan.",
+                "pr": 2474
+            },
+            {
+                "note": "Update `ERC20BridgeSampler` address on mainnet and kovan.",
+                "pr": 2476
+            },
+            {
+                "note": "Removed OrderValidator and DutchAuction addresses",
+                "pr": 2469
+            },
+            {
+                "note": "Added Broker and GodsUnchainedValidator addresses",
+                "pr": 2469
+            },
+            {
+                "note": "Updated Forwarder addresses",
+                "pr": 2469
+            },
+            {
+                "note": "Update `ERC20BridgeSampler` address on mainnet and kovan.",
+                "pr": 2477
+            }
+        ],
+        "timestamp": 1581204851
+    },
+    {
+        "version": "4.4.0",
+        "changes": [
+            {
+                "note": "Update `ERC20BridgeSampler` on mainnet and kovan.",
+                "pr": 2459
+            },
+            {
+                "note": "Remove `libTransactionDecoder`",
+                "pr": 2456
+            },
+            {
+                "note": "Update snapshot addresses",
+                "pr": 2464
+            }
+        ],
+        "timestamp": 1580811564
+    },
+    {
+        "version": "4.3.0",
+        "changes": [
+            {
+                "note": "Update `DevUtils` mainnet, Ropsten, Rinkeby, Kovan addresses with PR#2440 changes",
+                "pr": 2446
+            },
+            {
+                "note": "Update `DevUtils` mainnet, Ropsten, Rinkeby, Kovan addresses",
+                "pr": 2436
+            },
+            {
+                "note": "Update `ERC20BridgeSampler` address on kovan and mainnet.",
+                "pr": 2427
+            }
+        ],
+        "timestamp": 1579682890
+    },
+    {
+        "version": "4.2.0",
+        "changes": [
+            {
+                "note": "Added new `DevUtils` addresses",
+                "pr": 2402
+            },
+            {
+                "note": "Update ERC20BridgeSampler address on Kovan and mainnet.",
+                "pr": 2405
+            },
+            {
+                "note": "Added DydxBridge Contract to contract-addresses",
+                "pr": 2390
+            },
+            {
+                "note": "Update `UniswapBridge` mainnet address.",
+                "pr": 2390
+            },
+            {
+                "note": "Update `KyberBridge` mainnet address.",
+                "pr": 2390
+            },
+            {
+                "note": "Update `Forwarder` mainnet address.",
+                "pr": 2390
+            },
+            {
+                "note": "Added ChaiBridge Contract to contract-addresses",
+                "pr": 2390
+            }
+        ],
+        "timestamp": 1578272714
+    },
+    {
+        "version": "4.1.0",
+        "changes": [
+            {
+                "note": "Addition of ERC20BridgeSampler + Kyber Erc20Bridge Contract in contract-addresses",
+                "pr": 2353
+            }
+        ],
+        "timestamp": 1576540892
+    },
+    {
         "version": "4.0.0",
         "changes": [
             {

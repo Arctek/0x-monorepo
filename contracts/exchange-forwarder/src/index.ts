@@ -1,5 +1,5 @@
 export { artifacts } from './artifacts';
-export { ForwarderContract } from './wrappers';
+export { ForwarderContract, IExchangeV2Contract } from './wrappers';
 export { ExchangeForwarderRevertErrors } from '@0x/utils';
 export {
     ContractArtifact,
@@ -16,6 +16,7 @@ export {
     OutputField,
     ParamDescription,
     EvmBytecodeOutput,
+    EvmBytecodeOutputLinkReferences,
     AbiDefinition,
     FunctionAbi,
     EventAbi,

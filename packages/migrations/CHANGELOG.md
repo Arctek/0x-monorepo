@@ -5,6 +5,37 @@ Edit the package's CHANGELOG.json file only.
 
 CHANGELOG
 
+## v6.2.0 - _February 15, 2020_
+
+    * Added `CurveBridge` address (null) (#2483)
+
+## v6.1.0 - _February 8, 2020_
+
+    * Update `DevUtils` deployment (#2456)
+    * Remove `LibTransactionDecoder` deployment (#2456)
+    * Use contract package artifacts in ganache migrations (#2456)
+
+## v6.0.2 - _February 6, 2020_
+
+    * Dependencies updated
+
+## v6.0.1 - _February 4, 2020_
+
+    * Dependencies updated
+
+## v6.0.0 - _January 22, 2020_
+
+    * Update Forwarder deployment (#2432)
+
+## v5.1.0 - _January 6, 2020_
+
+    * Added DydxBridge Contract to ContractAddresses (#2401)
+    * Changed docker image command to overwrite any existing snapshot when unzipping the image downloaded from S3. (#2420)
+
+## v5.0.2 - _December 17, 2019_
+
+    * Dependencies updated
+
 ## v5.0.1 - _December 9, 2019_
 
     * Dependencies updated

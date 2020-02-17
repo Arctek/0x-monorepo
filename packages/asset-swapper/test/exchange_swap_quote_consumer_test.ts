@@ -1,8 +1,9 @@
 import { ContractAddresses } from '@0x/contract-addresses';
-import { DevUtilsContract, ERC20TokenContract, ExchangeContract } from '@0x/contract-wrappers';
+import { ERC20TokenContract, ExchangeContract } from '@0x/contract-wrappers';
 import { constants as devConstants, OrderFactory } from '@0x/contracts-test-utils';
 import { BlockchainLifecycle, tokenUtils } from '@0x/dev-utils';
 import { migrateOnceAsync } from '@0x/migrations';
+import { assetDataUtils } from '@0x/order-utils';
 import { BigNumber } from '@0x/utils';
 import * as chai from 'chai';
 import 'mocha';
@@ -10,14 +11,7 @@ import 'mocha';
 import { SwapQuote } from '../src';
 import { constants } from '../src/constants';
 import { ExchangeSwapQuoteConsumer } from '../src/quote_consumers/exchange_swap_quote_consumer';
-import {
-    ExchangeMarketBuySmartContractParams,
-    ExchangeMarketSellSmartContractParams,
-    MarketBuySwapQuote,
-    MarketOperation,
-    MarketSellSwapQuote,
-    PrunedSignedOrder,
-} from '../src/types';
+import { MarketOperation, SignedOrderWithFillableAmounts } from '../src/types';
 import { ProtocolFeeUtils } from '../src/utils/protocol_fee_utils';
 
 import { chaiSetup } from './utils/chai_setup';
@@ -33,7 +27,7 @@ const ONE_ETH_IN_WEI = new BigNumber(1000000000000000000);
 const TESTRPC_CHAIN_ID = devConstants.TESTRPC_CHAIN_ID;
 const UNLIMITED_ALLOWANCE = new BigNumber(2).pow(256).minus(1); // tslint:disable-line:custom-no-magic-numbers
 
-const PARTIAL_PRUNED_SIGNED_ORDERS_FEELESS: Array<Partial<PrunedSignedOrder>> = [
+const PARTIAL_PRUNED_SIGNED_ORDERS_FEELESS: Array<Partial<SignedOrderWithFillableAmounts>> = [
     {
         takerAssetAmount: new BigNumber(5).multipliedBy(ONE_ETH_IN_WEI),
         makerAssetAmount: new BigNumber(2).multipliedBy(ONE_ETH_IN_WEI),
@@ -85,7 +79,7 @@ describe('ExchangeSwapQuoteConsumer', () => {
 
     const chainId = TESTRPC_CHAIN_ID;
 
-    let orders: PrunedSignedOrder[];
+    let orders: SignedOrderWithFillableAmounts[];
     let marketSellSwapQuote: SwapQuote;
     let marketBuySwapQuote: SwapQuote;
     let swapQuoteConsumer: ExchangeSwapQuoteConsumer;
@@ -104,12 +98,11 @@ describe('ExchangeSwapQuoteConsumer', () => {
         userAddresses = await web3Wrapper.getAvailableAddressesAsync();
         [coinbaseAddress, takerAddress, makerAddress, feeRecipient] = userAddresses;
         [makerTokenAddress, takerTokenAddress] = tokenUtils.getDummyERC20TokenAddresses();
-        const devUtils = new DevUtilsContract(contractAddresses.devUtils, provider);
-        [makerAssetData, takerAssetData, wethAssetData] = await Promise.all([
-            devUtils.encodeERC20AssetData(makerTokenAddress).callAsync(),
-            devUtils.encodeERC20AssetData(takerTokenAddress).callAsync(),
-            devUtils.encodeERC20AssetData(contractAddresses.etherToken).callAsync(),
-        ]);
+        [makerAssetData, takerAssetData, wethAssetData] = [
+            assetDataUtils.encodeERC20AssetData(makerTokenAddress),
+            assetDataUtils.encodeERC20AssetData(takerTokenAddress),
+            assetDataUtils.encodeERC20AssetData(contractAddresses.etherToken),
+        ];
         erc20MakerTokenContract = new ERC20TokenContract(makerTokenAddress, provider);
         erc20TakerTokenContract = new ERC20TokenContract(takerTokenAddress, provider);
         exchangeContract = new ExchangeContract(contractAddresses.exchange, provider);
@@ -130,7 +123,7 @@ describe('ExchangeSwapQuoteConsumer', () => {
         };
         const privateKey = devConstants.TESTRPC_PRIVATE_KEYS[userAddresses.indexOf(makerAddress)];
         orderFactory = new OrderFactory(privateKey, defaultOrderParams);
-        protocolFeeUtils = new ProtocolFeeUtils();
+        protocolFeeUtils = new ProtocolFeeUtils(constants.PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS, new BigNumber(1));
         expectMakerAndTakerBalancesForTakerAssetAsync = expectMakerAndTakerBalancesAsyncFactory(
             erc20TakerTokenContract,
             makerAddress,
@@ -154,7 +147,7 @@ describe('ExchangeSwapQuoteConsumer', () => {
                 ...order,
                 ...partialOrder,
             };
-            orders.push(prunedOrder as PrunedSignedOrder);
+            orders.push(prunedOrder as SignedOrderWithFillableAmounts);
         }
 
         marketSellSwapQuote = await getFullyFillableSwapQuoteWithNoFeesAsync(
@@ -247,40 +240,6 @@ describe('ExchangeSwapQuoteConsumer', () => {
                 new BigNumber(10).multipliedBy(ONE_ETH_IN_WEI),
                 constants.ZERO_AMOUNT,
             );
-        });
-    });
-
-    describe('#getSmartContractParamsOrThrow', () => {
-        describe('valid swap quote', async () => {
-            // TODO(david) Check for valid MethodAbi
-            it('provide correct and optimized smart contract params for a marketSell SwapQuote', async () => {
-                const { toAddress, params } = await swapQuoteConsumer.getSmartContractParamsOrThrowAsync(
-                    marketSellSwapQuote,
-                    {},
-                );
-                expect(toAddress).to.deep.equal(exchangeContract.address);
-                const { takerAssetFillAmount, signatures, type } = params as ExchangeMarketSellSmartContractParams;
-                expect(type).to.deep.equal(MarketOperation.Sell);
-                expect(takerAssetFillAmount).to.bignumber.equal(
-                    (marketSellSwapQuote as MarketSellSwapQuote).takerAssetFillAmount,
-                );
-                const orderSignatures = marketSellSwapQuote.orders.map(order => order.signature);
-                expect(signatures).to.deep.equal(orderSignatures);
-            });
-            it('provide correct smart contract params for a marketBuy SwapQuote', async () => {
-                const { toAddress, params } = await swapQuoteConsumer.getSmartContractParamsOrThrowAsync(
-                    marketBuySwapQuote,
-                    {},
-                );
-                expect(toAddress).to.deep.equal(exchangeContract.address);
-                const { makerAssetFillAmount, signatures, type } = params as ExchangeMarketBuySmartContractParams;
-                expect(type).to.deep.equal(MarketOperation.Buy);
-                expect(makerAssetFillAmount).to.bignumber.equal(
-                    (marketBuySwapQuote as MarketBuySwapQuote).makerAssetFillAmount,
-                );
-                const orderSignatures = marketSellSwapQuote.orders.map(order => order.signature);
-                expect(signatures).to.deep.equal(orderSignatures);
-            });
         });
     });
 

@@ -28,9 +28,8 @@ import "@0x/contracts-exchange-libs/contracts/src/LibFillResults.sol";
 import "@0x/contracts-utils/contracts/src/LibBytes.sol";
 
 
-contract OrderTransferSimulationUtils is
-    LibExchangeRichErrorDecoder
-{
+contract OrderTransferSimulationUtils {
+
     using LibBytes for bytes;
 
     enum OrderTransferResults {
@@ -40,6 +39,10 @@ contract OrderTransferSimulationUtils is
         MakerFeeAssetDataFailed,  // Transfer of makerFeeAsset failed
         TransfersSuccessful       // All transfers in the order were successful
     }
+
+    // NOTE(jalextowle): This is a random address that we use to avoid issues that addresses like `address(1)`
+    // may cause later.
+    address constant internal UNUSED_ADDRESS = address(0x377f698C4c287018D09b516F415317aEC5919332);
 
     // keccak256(abi.encodeWithSignature("Error(string)", "TRANSFERS_SUCCESSFUL"));
     bytes32 constant internal _TRANSFERS_SUCCESSFUL_RESULT_HASH = 0xf43f26ea5a94b478394a975e856464913dc1a8a1ca70939d974aa7c238aa0ce0;
@@ -52,6 +55,51 @@ contract OrderTransferSimulationUtils is
         public
     {
         _EXCHANGE = IExchange(_exchange);
+    }
+
+    /// @dev Simulates the maker transfers within an order and returns the index of the first failed transfer.
+    /// @param order The order to simulate transfers for.
+    /// @param takerAddress The address of the taker that will fill the order.
+    /// @param takerAssetFillAmount The amount of takerAsset that the taker wished to fill.
+    /// @return The index of the first failed transfer (or 4 if all transfers are successful).
+    function getSimulatedOrderMakerTransferResults(
+        LibOrder.Order memory order,
+        address takerAddress,
+        uint256 takerAssetFillAmount
+    )
+        public
+        returns (OrderTransferResults orderTransferResults)
+    {
+        LibFillResults.FillResults memory fillResults = LibFillResults.calculateFillResults(
+            order,
+            takerAssetFillAmount,
+            _EXCHANGE.protocolFeeMultiplier(),
+            tx.gasprice
+        );
+
+        bytes[] memory assetData = new bytes[](2);
+        address[] memory fromAddresses = new address[](2);
+        address[] memory toAddresses = new address[](2);
+        uint256[] memory amounts = new uint256[](2);
+
+        // Transfer `makerAsset` from maker to taker
+        assetData[0] = order.makerAssetData;
+        fromAddresses[0] = order.makerAddress;
+        toAddresses[0] = takerAddress == address(0) ? UNUSED_ADDRESS : takerAddress;
+        amounts[0] = fillResults.makerAssetFilledAmount;
+
+        // Transfer `makerFeeAsset` from maker to feeRecipient
+        assetData[1] = order.makerFeeAssetData;
+        fromAddresses[1] = order.makerAddress;
+        toAddresses[1] = order.feeRecipientAddress == address(0) ? UNUSED_ADDRESS : order.feeRecipientAddress;
+        amounts[1] = fillResults.makerFeePaid;
+
+        return _simulateTransferFromCalls(
+            assetData,
+            fromAddresses,
+            toAddresses,
+            amounts
+        );
     }
 
     /// @dev Simulates all of the transfers within an order and returns the index of the first failed transfer.
@@ -89,48 +137,27 @@ contract OrderTransferSimulationUtils is
         // Transfer `makerAsset` from maker to taker
         assetData[1] = order.makerAssetData;
         fromAddresses[1] = order.makerAddress;
-        toAddresses[1] = takerAddress;
+        toAddresses[1] = takerAddress == address(0) ? UNUSED_ADDRESS : takerAddress;
         amounts[1] = fillResults.makerAssetFilledAmount;
 
         // Transfer `takerFeeAsset` from taker to feeRecipient
         assetData[2] = order.takerFeeAssetData;
         fromAddresses[2] = takerAddress;
-        toAddresses[2] = order.feeRecipientAddress;
+        toAddresses[2] = order.feeRecipientAddress == address(0) ? UNUSED_ADDRESS : order.feeRecipientAddress;
         amounts[2] = fillResults.takerFeePaid;
 
         // Transfer `makerFeeAsset` from maker to feeRecipient
         assetData[3] = order.makerFeeAssetData;
         fromAddresses[3] = order.makerAddress;
-        toAddresses[3] = order.feeRecipientAddress;
+        toAddresses[3] = order.feeRecipientAddress == address(0) ? UNUSED_ADDRESS : order.feeRecipientAddress;
         amounts[3] = fillResults.makerFeePaid;
 
-        // Encode data for `simulateDispatchTransferFromCalls(assetData, fromAddresses, toAddresses, amounts)`
-        bytes memory simulateDispatchTransferFromCallsData = abi.encodeWithSelector(
-            IExchange(address(0)).simulateDispatchTransferFromCalls.selector,
+        return _simulateTransferFromCalls(
             assetData,
             fromAddresses,
             toAddresses,
             amounts
         );
-
-        // Perform call and catch revert
-        (, bytes memory returnData) = address(_EXCHANGE).call(simulateDispatchTransferFromCallsData);
-
-        bytes4 selector = returnData.readBytes4(0);
-        if (selector == LibExchangeRichErrors.AssetProxyDispatchErrorSelector()) {
-            // Decode AssetProxyDispatchError and return index of failed transfer
-            (, bytes32 failedTransferIndex,) = decodeAssetProxyDispatchError(returnData);
-            return OrderTransferResults(uint8(uint256(failedTransferIndex)));
-        } else if (selector == LibExchangeRichErrors.AssetProxyTransferErrorSelector()) {
-            // Decode AssetProxyTransferError and return index of failed transfer
-            (bytes32 failedTransferIndex, ,) = decodeAssetProxyTransferError(returnData);
-            return OrderTransferResults(uint8(uint256(failedTransferIndex)));
-        } else if (keccak256(returnData) == _TRANSFERS_SUCCESSFUL_RESULT_HASH) {
-            // All transfers were successful
-            return OrderTransferResults.TransfersSuccessful;
-        } else {
-            revert("UNKNOWN_RETURN_DATA");
-        }
     }
 
     /// @dev Simulates all of the transfers for each given order and returns the indices of each first failed transfer.
@@ -156,5 +183,51 @@ contract OrderTransferSimulationUtils is
             );
         }
         return orderTransferResults;
+    }
+
+    /// @dev Makes the simulation call with information about the transfers and processes
+    ///      the returndata.
+    /// @param assetData The assetdata to use to make transfers.
+    /// @param fromAddresses The addresses to transfer funds.
+    /// @param toAddresses The addresses that will receive funds
+    /// @param amounts The amounts involved in the transfer.
+    function _simulateTransferFromCalls(
+        bytes[] memory assetData,
+        address[] memory fromAddresses,
+        address[] memory toAddresses,
+        uint256[] memory amounts
+    )
+        internal
+        returns (OrderTransferResults orderTransferResults)
+    {
+        // Encode data for `simulateDispatchTransferFromCalls(assetData, fromAddresses, toAddresses, amounts)`
+        bytes memory simulateDispatchTransferFromCallsData = abi.encodeWithSelector(
+            IExchange(address(0)).simulateDispatchTransferFromCalls.selector,
+            assetData,
+            fromAddresses,
+            toAddresses,
+            amounts
+        );
+
+        // Perform call and catch revert
+        (, bytes memory returnData) = address(_EXCHANGE).call(simulateDispatchTransferFromCallsData);
+
+        bytes4 selector = returnData.readBytes4(0);
+        if (selector == LibExchangeRichErrors.AssetProxyDispatchErrorSelector()) {
+            // Decode AssetProxyDispatchError and return index of failed transfer
+            (, bytes32 failedTransferIndex,) = LibExchangeRichErrorDecoder
+                .decodeAssetProxyDispatchError(returnData);
+            return OrderTransferResults(uint8(uint256(failedTransferIndex)));
+        } else if (selector == LibExchangeRichErrors.AssetProxyTransferErrorSelector()) {
+            // Decode AssetProxyTransferError and return index of failed transfer
+            (bytes32 failedTransferIndex, ,) = LibExchangeRichErrorDecoder
+                .decodeAssetProxyTransferError(returnData);
+            return OrderTransferResults(uint8(uint256(failedTransferIndex)));
+        } else if (keccak256(returnData) == _TRANSFERS_SUCCESSFUL_RESULT_HASH) {
+            // All transfers were successful
+            return OrderTransferResults.TransfersSuccessful;
+        } else {
+            revert("UNKNOWN_RETURN_DATA");
+        }
     }
 }

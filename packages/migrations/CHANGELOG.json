@@ -1,5 +1,84 @@
 [
     {
+        "version": "6.2.0",
+        "changes": [
+            {
+                "note": "Added `CurveBridge` address (null)",
+                "pr": 2483
+            }
+        ],
+        "timestamp": 1581748629
+    },
+    {
+        "version": "6.1.0",
+        "changes": [
+            {
+                "note": "Update `DevUtils` deployment",
+                "pr": 2456
+            },
+            {
+                "note": "Remove `LibTransactionDecoder` deployment",
+                "pr": 2456
+            },
+            {
+                "note": "Use contract package artifacts in ganache migrations",
+                "pr": 2456
+            }
+        ],
+        "timestamp": 1581204851
+    },
+    {
+        "timestamp": 1580988106,
+        "version": "6.0.2",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1580811564,
+        "version": "6.0.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "version": "6.0.0",
+        "changes": [
+            {
+                "note": "Update Forwarder deployment",
+                "pr": 2432
+            }
+        ],
+        "timestamp": 1579682890
+    },
+    {
+        "version": "5.1.0",
+        "changes": [
+            {
+                "note": "Added DydxBridge Contract to ContractAddresses",
+                "pr": 2401
+            },
+            {
+                "note": "Changed docker image command to overwrite any existing snapshot when unzipping the image downloaded from S3.",
+                "pr": 2420
+            }
+        ],
+        "timestamp": 1578272714
+    },
+    {
+        "timestamp": 1576540892,
+        "version": "5.0.2",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
         "timestamp": 1575931811,
         "version": "5.0.1",
         "changes": [

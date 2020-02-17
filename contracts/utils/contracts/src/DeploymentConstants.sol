@@ -18,28 +18,38 @@
 
 pragma solidity ^0.5.9;
 
-import "./interfaces/IOwnable.sol";
-import "./LibOwnableRichErrors.sol";
-import "./LibRichErrors.sol";
-
 
 contract DeploymentConstants {
     /// @dev Mainnet address of the WETH contract.
     address constant private WETH_ADDRESS = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    /// @dev Mainnet address of the KyberNeworkProxy contract.
+    // /// @dev Kovan address of the WETH contract.
+    // address constant private WETH_ADDRESS = 0xd0A1E359811322d97991E03f863a0C30C2cF029C;
+    /// @dev Mainnet address of the KyberNetworkProxy contract.
     address constant private KYBER_NETWORK_PROXY_ADDRESS = 0x818E6FECD516Ecc3849DAf6845e3EC868087B755;
+    // /// @dev Kovan address of the KyberNetworkProxy contract.
+    // address constant private KYBER_NETWORK_PROXY_ADDRESS = 0x692f391bCc85cefCe8C237C01e1f636BbD70EA4D;
     /// @dev Mainnet address of the `UniswapExchangeFactory` contract.
     address constant private UNISWAP_EXCHANGE_FACTORY_ADDRESS = 0xc0a47dFe034B400B47bDaD5FecDa2621de6c4d95;
+    // /// @dev Kovan address of the `UniswapExchangeFactory` contract.
+    // address constant private UNISWAP_EXCHANGE_FACTORY_ADDRESS = 0xD3E51Ef092B2845f10401a0159B2B96e8B6c3D30;
     /// @dev Mainnet address of the Eth2Dai `MatchingMarket` contract.
-    address constant private ETH2DAI_ADDRESS = 0x39755357759cE0d7f32dC8dC45414CCa409AE24e;
+    address constant private ETH2DAI_ADDRESS = 0x794e6e91555438aFc3ccF1c5076A74F42133d08D;
+    // /// @dev Kovan address of the Eth2Dai `MatchingMarket` contract.
+    // address constant private ETH2DAI_ADDRESS = 0xe325acB9765b02b8b418199bf9650972299235F4;
     /// @dev Mainnet address of the `ERC20BridgeProxy` contract
     address constant private ERC20_BRIDGE_PROXY_ADDRESS = 0x8ED95d1746bf1E4dAb58d8ED4724f1Ef95B20Db0;
+    // /// @dev Kovan address of the `ERC20BridgeProxy` contract
+    // address constant private ERC20_BRIDGE_PROXY_ADDRESS = 0xFb2DD2A1366dE37f7241C83d47DA58fd503E2C64;
     ///@dev Mainnet address of the `Dai` (multi-collateral) contract
     address constant private DAI_ADDRESS = 0x6B175474E89094C44Da98b954EedeAC495271d0F;
+    // ///@dev Kovan address of the `Dai` (multi-collateral) contract
+    // address constant private DAI_ADDRESS = 0x4F96Fe3b7A6Cf9725f59d353F723c1bDb64CA6Aa;
     /// @dev Mainnet address of the `Chai` contract
     address constant private CHAI_ADDRESS = 0x06AF07097C9Eeb7fD685c692751D5C66dB49c215;
-    /// @dev Address of the 0x DevUtils contract.
+    /// @dev Mainnet address of the 0x DevUtils contract.
     address constant private DEV_UTILS_ADDRESS = 0xcCc2431a7335F21d9268bA62F0B32B0f2EFC463f;
+    // /// @dev Kovan address of the 0x DevUtils contract.
+    // address constant private DEV_UTILS_ADDRESS = 0x161793Cdca4fF9E766A706c2C49c36AC1340bbcd;
     /// @dev Kyber ETH pseudo-address.
     address constant internal KYBER_ETH_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     /// @dev Mainnet address of the dYdX contract.

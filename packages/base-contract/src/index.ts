@@ -30,7 +30,7 @@ import * as util from 'ethereumjs-util';
 import { default as VM } from 'ethereumjs-vm';
 import PStateManager from 'ethereumjs-vm/dist/state/promisified';
 
-export { methodAbiToFunctionSignature } from './utils';
+export { linkLibrariesInBytecode, methodAbiToFunctionSignature } from './utils';
 
 import { AwaitTransactionSuccessOpts } from './types';
 import { formatABIDataItem } from './utils';
@@ -76,6 +76,9 @@ export class PromiseWithTransactionHash<T> implements Promise<T> {
     }
     public catch<TResult>(onRejected?: (reason: any) => Promise<TResult>): Promise<TResult | T> {
         return this._promise.catch(onRejected);
+    }
+    public finally(onFinally?: (() => void) | null): Promise<T> {
+        return this._promise.finally(onFinally);
     }
     // tslint:enable:promise-function-async
     // tslint:enable:async-suffix
@@ -142,15 +145,29 @@ export class BaseContract {
         let revertError: RevertError;
         try {
             revertError = decodeThrownErrorAsRevertError(error);
-            // Re-cast StringRevertErrors as plain Errors for backwards-compatibility.
-            if (revertError instanceof StringRevertError) {
-                throw new Error(revertError.values.message as string);
-            }
         } catch (err) {
             // Can't decode it.
             return;
         }
+        // Re-cast StringRevertErrors as plain Errors for backwards-compatibility.
+        if (revertError instanceof StringRevertError) {
+            throw new Error(revertError.values.message as string);
+        }
         throw revertError;
+    }
+    protected static _throwIfUnexpectedEmptyCallResult(rawCallResult: string, methodAbi: AbiEncoder.Method): void {
+        // With live nodes, we will receive an empty call result if:
+        // 1. The function has no return value.
+        // 2. The contract reverts without data.
+        // 3. The contract reverts with an invalid opcode (`assert(false)` or `invalid()`).
+        if (!rawCallResult || rawCallResult === '0x') {
+            const returnValueDataItem = methodAbi.getReturnValueDataItem();
+            if (returnValueDataItem.components === undefined || returnValueDataItem.components.length === 0) {
+                // Expected no result (which makes it hard to tell if the call reverted).
+                return;
+            }
+            throw new Error(`Function "${methodAbi.getSignature()}" reverted with no data`);
+        }
     }
     // Throws if the given arguments cannot be safely/correctly encoded based on
     // the given inputAbi. An argument may not be considered safely encodeable
@@ -345,8 +362,17 @@ export class BaseContract {
         assert.isString('contractName', contractName);
         assert.isETHAddressHex('address', address);
         if (deployedBytecode !== undefined && deployedBytecode !== '') {
-            assert.isHexString('deployedBytecode', deployedBytecode);
-            this._deployedBytecodeIfExists = Buffer.from(deployedBytecode.substr(2), 'hex');
+            // `deployedBytecode` might contain references to
+            // unlinked libraries and, hence, would not be a hex string. We'll just
+            // leave `_deployedBytecodeIfExists` empty if this is the case.
+            // TODO(dorothy-zbornak): We should link the `deployedBytecode`
+            // beforehand in the generated wrappers.
+            try {
+                assert.isHexString('deployedBytecode', deployedBytecode);
+                this._deployedBytecodeIfExists = Buffer.from(deployedBytecode.substr(2), 'hex');
+            } catch (err) {
+                // Do nothing.
+            }
         }
         const provider = providerUtils.standardizeOrThrow(supportedProvider);
         if (callAndTxnDefaults !== undefined) {

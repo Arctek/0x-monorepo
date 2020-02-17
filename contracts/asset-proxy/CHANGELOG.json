@@ -1,5 +1,86 @@
 [
     {
+        "timestamp": 1581748629,
+        "version": "3.2.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "version": "3.2.0",
+        "changes": [
+            {
+                "note": "Fix broken tests.",
+                "pr": 2462
+            },
+            {
+                "note": "Remove dependency on `@0x/contracts-dev-utils`",
+                "pr": 2462
+            },
+            {
+                "note": "Add asset data decoding functions",
+                "pr": 2462
+            }
+        ],
+        "timestamp": 1581204851
+    },
+    {
+        "timestamp": 1580988106,
+        "version": "3.1.3",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1580811564,
+        "version": "3.1.2",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1579682890,
+        "version": "3.1.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "version": "3.1.0",
+        "changes": [
+            {
+                "note": "Integration tests for DydxBridge with ERC20BridgeProxy.",
+                "pr": 2401
+            },
+            {
+                "note": "Fix `UniswapBridge` token -> token transfer call.",
+                "pr": 2412
+            },
+            {
+                "note": "Fix `KyberBridge` incorrect `minConversionRate` calculation.",
+                "pr": 2412
+            }
+        ],
+        "timestamp": 1578272714
+    },
+    {
+        "timestamp": 1576540892,
+        "version": "3.0.2",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
         "timestamp": 1575931811,
         "version": "3.0.1",
         "changes": [

@@ -19,26 +19,59 @@
 pragma solidity ^0.5.9;
 pragma experimental ABIEncoderV2;
 
-import "@0x/contracts-utils/contracts/src/LibBytes.sol";
-import "@0x/contracts-utils/contracts/src/LibRichErrors.sol";
-import "@0x/contracts-utils/contracts/src/LibSafeMath.sol";
+import "@0x/contracts-asset-proxy/contracts/src/interfaces/IAssetData.sol";
+import "@0x/contracts-erc20/contracts/src/interfaces/IERC20Token.sol";
+import "@0x/contracts-exchange/contracts/src/interfaces/IExchange.sol";
 import "@0x/contracts-exchange-libs/contracts/src/LibOrder.sol";
 import "@0x/contracts-exchange-libs/contracts/src/LibFillResults.sol";
 import "@0x/contracts-exchange-libs/contracts/src/LibMath.sol";
-import "@0x/contracts-exchange/contracts/src/interfaces/IExchange.sol";
-import "@0x/contracts-asset-proxy/contracts/src/interfaces/IAssetData.sol";
-import "@0x/contracts-erc20/contracts/src/interfaces/IERC20Token.sol";
-import "./libs/LibConstants.sol";
+import "@0x/contracts-extensions/contracts/src/LibAssetDataTransfer.sol";
+import "@0x/contracts-utils/contracts/src/LibBytes.sol";
+import "@0x/contracts-utils/contracts/src/LibRichErrors.sol";
+import "@0x/contracts-utils/contracts/src/LibSafeMath.sol";
 import "./libs/LibForwarderRichErrors.sol";
-import "./MixinAssets.sol";
+import "./interfaces/IExchangeV2.sol";
 
 
-contract MixinExchangeWrapper is
-    LibConstants,
-    MixinAssets
-{
+contract MixinExchangeWrapper {
+
+    // The v2 order id is the first 4 bytes of the ExchangeV2 order schema hash.
+    // bytes4(keccak256(abi.encodePacked(
+    //     "Order(",
+    //     "address makerAddress,",
+    //     "address takerAddress,",
+    //     "address feeRecipientAddress,",
+    //     "address senderAddress,",
+    //     "uint256 makerAssetAmount,",
+    //     "uint256 takerAssetAmount,",
+    //     "uint256 makerFee,",
+    //     "uint256 takerFee,",
+    //     "uint256 expirationTimeSeconds,",
+    //     "uint256 salt,",
+    //     "bytes makerAssetData,",
+    //     "bytes takerAssetData",
+    //     ")"
+    // )));
+    bytes4 constant public EXCHANGE_V2_ORDER_ID = 0x770501f8;
+
+     // solhint-disable var-name-mixedcase
+    IExchange internal EXCHANGE;
+    IExchangeV2 internal EXCHANGE_V2;
+    // solhint-enable var-name-mixedcase
+
     using LibBytes for bytes;
+    using LibAssetDataTransfer for bytes;
     using LibSafeMath for uint256;
+
+    constructor (
+        address _exchange,
+        address _exchangeV2
+    )
+        public
+    {
+        EXCHANGE = IExchange(_exchange);
+        EXCHANGE_V2 = IExchangeV2(_exchangeV2);
+    }
 
     /// @dev Fills the input order.
     ///      Returns false if the transaction would otherwise revert.
@@ -54,23 +87,19 @@ contract MixinExchangeWrapper is
         internal
         returns (LibFillResults.FillResults memory fillResults)
     {
-        // ABI encode calldata for `fillOrder`
-        bytes memory fillOrderCalldata = abi.encodeWithSelector(
-            IExchange(address(0)).fillOrder.selector,
+        if (_isV2Order(order)) {
+            return _fillV2OrderNoThrow(
+                order,
+                takerAssetFillAmount,
+                signature
+            );
+        }
+
+        return _fillV3OrderNoThrow(
             order,
             takerAssetFillAmount,
             signature
         );
-
-        address exchange = address(EXCHANGE);
-        (bool didSucceed, bytes memory returnData) = exchange.call(fillOrderCalldata);
-        if (didSucceed) {
-            assert(returnData.length == 160);
-            fillResults = abi.decode(returnData, (LibFillResults.FillResults));
-        }
-
-        // fillResults values will be 0 by default if call was unsuccessful
-        return fillResults;
     }
 
     /// @dev Executes a single call of fillOrder according to the wethSellAmount and
@@ -162,8 +191,7 @@ contract MixinExchangeWrapper is
         uint256 protocolFee = tx.gasprice.safeMul(EXCHANGE.protocolFeeMultiplier());
         bytes4 erc20BridgeProxyId = IAssetData(address(0)).ERC20Bridge.selector;
 
-        uint256 ordersLength = orders.length;
-        for (uint256 i = 0; i != ordersLength; i++) {
+        for (uint256 i = 0; i != orders.length; i++) {
             // Preemptively skip to avoid division by zero in _marketSellSingleOrder
             if (orders[i].makerAssetAmount == 0 || orders[i].takerAssetAmount == 0) {
                 continue;
@@ -172,7 +200,7 @@ contract MixinExchangeWrapper is
             // The remaining amount of WETH to sell
             uint256 remainingTakerAssetFillAmount = wethSellAmount
                 .safeSub(totalWethSpentAmount)
-                .safeSub(protocolFee);
+                .safeSub(_isV2Order(orders[i]) ? 0 : protocolFee);
 
             // If the maker asset is ERC20Bridge, take a snapshot of the Forwarder contract's balance.
             bytes4 makerAssetProxyId = orders[i].makerAssetData.readBytes4(0);
@@ -201,7 +229,7 @@ contract MixinExchangeWrapper is
                 );
             }
 
-            _transferAssetToSender(orders[i].makerAssetData, makerAssetAcquiredAmount);
+            orders[i].makerAssetData.transferOut(makerAssetAcquiredAmount);
 
             totalWethSpentAmount = totalWethSpentAmount
                 .safeAdd(wethSpentAmount);
@@ -349,7 +377,7 @@ contract MixinExchangeWrapper is
                 );
             }
 
-            _transferAssetToSender(orders[i].makerAssetData, makerAssetAcquiredAmount);
+            orders[i].makerAssetData.transferOut(makerAssetAcquiredAmount);
 
             totalWethSpentAmount = totalWethSpentAmount
                 .safeAdd(wethSpentAmount);
@@ -368,6 +396,91 @@ contract MixinExchangeWrapper is
                 totalMakerAssetAcquiredAmount
             ));
         }
+    }
+
+    /// @dev Fills the input ExchangeV2 order. The `makerFeeAssetData` must be
+    //       equal to EXCHANGE_V2_ORDER_ID (0x770501f8).
+    ///      Returns false if the transaction would otherwise revert.
+    /// @param order Order struct containing order specifications.
+    /// @param takerAssetFillAmount Desired amount of takerAsset to sell.
+    /// @param signature Proof that order has been created by maker.
+    /// @return Amounts filled and fees paid by maker and taker.
+    function _fillV2OrderNoThrow(
+        LibOrder.Order memory order,
+        uint256 takerAssetFillAmount,
+        bytes memory signature
+    )
+        internal
+        returns (LibFillResults.FillResults memory fillResults)
+    {
+        // Strip v3 specific fields from order
+        IExchangeV2.Order memory v2Order = IExchangeV2.Order({
+            makerAddress: order.makerAddress,
+            takerAddress: order.takerAddress,
+            feeRecipientAddress: order.feeRecipientAddress,
+            senderAddress: order.senderAddress,
+            makerAssetAmount: order.makerAssetAmount,
+            takerAssetAmount: order.takerAssetAmount,
+            // NOTE: We assume fees are 0 for all v2 orders. Orders with non-zero fees will fail to be filled.
+            makerFee: 0,
+            takerFee: 0,
+            expirationTimeSeconds: order.expirationTimeSeconds,
+            salt: order.salt,
+            makerAssetData: order.makerAssetData,
+            takerAssetData: order.takerAssetData
+        });
+
+        // ABI encode calldata for `fillOrder`
+        bytes memory fillOrderCalldata = abi.encodeWithSelector(
+            IExchangeV2(address(0)).fillOrder.selector,
+            v2Order,
+            takerAssetFillAmount,
+            signature
+        );
+
+        address exchange = address(EXCHANGE_V2);
+        (bool didSucceed, bytes memory returnData) = exchange.call(fillOrderCalldata);
+        if (didSucceed) {
+            assert(returnData.length == 128);
+            // NOTE: makerFeePaid, takerFeePaid, and protocolFeePaid will always be 0 for v2 orders
+            (fillResults.makerAssetFilledAmount, fillResults.takerAssetFilledAmount) = abi.decode(returnData, (uint256, uint256));
+        }
+
+        // fillResults values will be 0 by default if call was unsuccessful
+        return fillResults;
+    }
+
+    /// @dev Fills the input ExchangeV3 order.
+    ///      Returns false if the transaction would otherwise revert.
+    /// @param order Order struct containing order specifications.
+    /// @param takerAssetFillAmount Desired amount of takerAsset to sell.
+    /// @param signature Proof that order has been created by maker.
+    /// @return Amounts filled and fees paid by maker and taker.
+    function _fillV3OrderNoThrow(
+        LibOrder.Order memory order,
+        uint256 takerAssetFillAmount,
+        bytes memory signature
+    )
+        internal
+        returns (LibFillResults.FillResults memory fillResults)
+    {
+        // ABI encode calldata for `fillOrder`
+        bytes memory fillOrderCalldata = abi.encodeWithSelector(
+            IExchange(address(0)).fillOrder.selector,
+            order,
+            takerAssetFillAmount,
+            signature
+        );
+
+        address exchange = address(EXCHANGE);
+        (bool didSucceed, bytes memory returnData) = exchange.call(fillOrderCalldata);
+        if (didSucceed) {
+            assert(returnData.length == 160);
+            fillResults = abi.decode(returnData, (LibFillResults.FillResults));
+        }
+
+        // fillResults values will be 0 by default if call was unsuccessful
+        return fillResults;
     }
 
     /// @dev Checks whether one asset is effectively equal to another asset.
@@ -398,7 +511,18 @@ contract MixinExchangeWrapper is
             address token2 = assetData2.readAddress(16);
             return (token1 == token2);
         } else {
-            return false;
+            return assetData1.equals(assetData2);
         }
+    }
+
+    /// @dev Checks whether an order is a v2 order.
+    /// @param order Order struct containing order specifications.
+    /// @return True if the order's `makerFeeAssetData` is set to the v2 order id.
+    function _isV2Order(LibOrder.Order memory order)
+        internal
+        pure
+        returns (bool)
+    {
+        return order.makerFeeAssetData.length > 3 && order.makerFeeAssetData.readBytes4(0) == EXCHANGE_V2_ORDER_ID;
     }
 }

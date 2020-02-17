@@ -5,6 +5,55 @@ Edit the package's CHANGELOG.json file only.
 
 CHANGELOG
 
+## v4.2.0 - _February 15, 2020_
+
+    * Use `batchCall()` version of the `ERC20BridgeSampler` contract (#2477)
+    * Support for sampling Curve contracts (#2483)
+
+## v4.1.2 - _February 8, 2020_
+
+    * Dependencies updated
+
+## v4.1.1 - _February 6, 2020_
+
+    * Fix bug with liquidity source breakdown (#2472)
+    * Prune orders before creating a dummy order for the Sampler (#2470)
+    * Bump sampler gas limit to 60e6 (#2471)
+
+## v4.1.0 - _February 4, 2020_
+
+    * Allow contract addresses to be passed as optional constructor ags instead of hardcoding (#2461)
+    * Add swap quote liquidity source breakdown (#2465)
+
+## v4.0.1 - _January 23, 2020_
+
+    * Fix underestimated protocol fee in worst case quote. (#2452)
+
+## v4.0.0 - _January 22, 2020_
+
+    * Upgrade to new `Forwarder` contract with flat affiliate fees. (#2432)
+    * Remove `getSmartContractParamsOrThrow()` from `SwapQuoteConsumer`s. (#2432)
+    * Added `getBatchMarketBuySwapQuoteForAssetDataAsync` on `SwapQuoter` (#2427)
+    * Add exponential sampling distribution and `sampleDistributionBase` option to `SwapQuoter` (#2427)
+    * Compute more accurate best quote price (#2427)
+    * Change Exchange sell function from `marketSellOrdersNoThrow` to `marketSellOrdersFillOrKill` (#2450)
+
+## v3.0.3 - _January 6, 2020_
+
+    * Ignore zero sample results from the sampler contract. (#2406)
+    * Increase default `runLimit` from `1024` to `4096`. (#2406)
+    * Increase default `numSamples` from `8` to `10` (#2406)
+    * Fix ordering of optimized orders. (#2406)
+    * Fix best and worst quotes being reversed sometimes. (#2406)
+    * Fix rounding of quoted asset amounts. (#2406)
+    * Undo bridge slippage in best case quote calculation. (#2406)
+    * Compare equivalent asset data when validating quotes and checking fee asset data. (#2421)
+
+## v3.0.2 - _December 17, 2019_
+
+    * Fix gasPrice from `ethgasstation` to be in WEI instead of GWEI (#2393)
+    * Add aggregator utils (#2353)
+
 ## v3.0.1 - _December 9, 2019_
 
     * Dependencies updated

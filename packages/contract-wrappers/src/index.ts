@@ -2,6 +2,7 @@ export { ContractAddresses } from '@0x/contract-addresses';
 
 export { ContractWrappers } from './contract_wrappers';
 export { DevUtilsContract } from './generated-wrappers/dev_utils';
+export { IERC20BridgeSamplerContract } from './generated-wrappers/i_erc20_bridge_sampler';
 export { IAssetDataContract } from './generated-wrappers/i_asset_data'; // used for synchronously encoding and decoding asset data
 export {
     ERC20TokenEventArgs,
@@ -27,6 +28,7 @@ export {
     ExchangeCancelUpToEventArgs,
     ExchangeAssetProxyRegisteredEventArgs,
     ExchangeContract,
+    ExchangeOwnershipTransferredEventArgs,
     ExchangeProtocolFeeCollectorAddressEventArgs,
     ExchangeProtocolFeeMultiplierEventArgs,
     ExchangeTransactionExecutionEventArgs,
@@ -125,6 +127,7 @@ export {
     DecodedLogEntryEvent,
     ParamDescription,
     EvmBytecodeOutput,
+    EvmBytecodeOutputLinkReferences,
     JSONRPCResponsePayload,
     MethodAbi,
     ConstructorAbi,

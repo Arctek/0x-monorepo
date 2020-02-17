@@ -1,9 +1,14 @@
 import { getContractAddressesForChainOrThrow } from '@0x/contract-addresses';
 import { ContractWrappers } from '@0x/contract-wrappers';
-import { provider } from '@0x/contracts-test-utils';
+import { Web3ProviderEngine } from '@0x/dev-utils';
 
 const chainId = 1;
-const contractAddresses = getContractAddressesForChainOrThrow(chainId);
-const contractWrappers = new ContractWrappers(provider, { chainId, contractAddresses });
+export const dydxAccountOwner = '0xfdac948232c5bfbe24b770326ee4dff7a8dd8484';
+export const contractAddresses = getContractAddressesForChainOrThrow(chainId);
 
-export { contractAddresses, contractWrappers };
+/**
+ * Create contract wrappers for the mainnet given a mainnet/forked provider.
+ */
+export function getContractwrappers(provider: Web3ProviderEngine): ContractWrappers {
+    return new ContractWrappers(provider, { chainId, contractAddresses });
+}

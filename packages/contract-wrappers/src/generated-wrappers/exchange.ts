@@ -10,6 +10,7 @@ import {
     SubscriptionManager,
     PromiseWithTransactionHash,
     methodAbiToFunctionSignature,
+    linkLibrariesInBytecode,
 } from '@0x/base-contract';
 import { schemas } from '@0x/json-schemas';
 import {
@@ -27,7 +28,7 @@ import {
     TxDataPayable,
     SupportedProvider,
 } from 'ethereum-types';
-import { BigNumber, classUtils, logUtils, providerUtils } from '@0x/utils';
+import { BigNumber, classUtils, hexUtils, logUtils, providerUtils } from '@0x/utils';
 import { EventCallback, IndexedFilterValues, SimpleContractArtifact } from '@0x/types';
 import { Web3Wrapper } from '@0x/web3-wrapper';
 import { assert } from '@0x/assert';
@@ -39,6 +40,7 @@ export type ExchangeEventArgs =
     | ExchangeCancelEventArgs
     | ExchangeCancelUpToEventArgs
     | ExchangeFillEventArgs
+    | ExchangeOwnershipTransferredEventArgs
     | ExchangeProtocolFeeCollectorAddressEventArgs
     | ExchangeProtocolFeeMultiplierEventArgs
     | ExchangeSignatureValidatorApprovalEventArgs
@@ -49,6 +51,7 @@ export enum ExchangeEvents {
     Cancel = 'Cancel',
     CancelUpTo = 'CancelUpTo',
     Fill = 'Fill',
+    OwnershipTransferred = 'OwnershipTransferred',
     ProtocolFeeCollectorAddress = 'ProtocolFeeCollectorAddress',
     ProtocolFeeMultiplier = 'ProtocolFeeMultiplier',
     SignatureValidatorApproval = 'SignatureValidatorApproval',
@@ -92,6 +95,11 @@ export interface ExchangeFillEventArgs extends DecodedLogArgs {
     protocolFeePaid: BigNumber;
 }
 
+export interface ExchangeOwnershipTransferredEventArgs extends DecodedLogArgs {
+    previousOwner: string;
+    newOwner: string;
+}
+
 export interface ExchangeProtocolFeeCollectorAddressEventArgs extends DecodedLogArgs {
     oldProtocolFeeCollector: string;
     updatedProtocolFeeCollector: string;
@@ -113,6 +121,7 @@ export interface ExchangeTransactionExecutionEventArgs extends DecodedLogArgs {
 }
 
 /* istanbul ignore next */
+// tslint:disable:array-type
 // tslint:disable:no-parameter-reassignment
 // tslint:disable-next-line:class-name
 export class ExchangeContract extends BaseContract {
@@ -149,6 +158,41 @@ export class ExchangeContract extends BaseContract {
         }
         return ExchangeContract.deployAsync(bytecode, abi, provider, txDefaults, logDecodeDependenciesAbiOnly, chainId);
     }
+
+    public static async deployWithLibrariesFrom0xArtifactAsync(
+        artifact: ContractArtifact,
+        libraryArtifacts: { [libraryName: string]: ContractArtifact },
+        supportedProvider: SupportedProvider,
+        txDefaults: Partial<TxData>,
+        logDecodeDependencies: { [contractName: string]: ContractArtifact | SimpleContractArtifact },
+        chainId: BigNumber,
+    ): Promise<ExchangeContract> {
+        assert.doesConformToSchema('txDefaults', txDefaults, schemas.txDataSchema, [
+            schemas.addressSchema,
+            schemas.numberSchema,
+            schemas.jsNumber,
+        ]);
+        if (artifact.compilerOutput === undefined) {
+            throw new Error('Compiler output not found in the artifact file');
+        }
+        const provider = providerUtils.standardizeOrThrow(supportedProvider);
+        const abi = artifact.compilerOutput.abi;
+        const logDecodeDependenciesAbiOnly: { [contractName: string]: ContractAbi } = {};
+        if (Object.keys(logDecodeDependencies) !== undefined) {
+            for (const key of Object.keys(logDecodeDependencies)) {
+                logDecodeDependenciesAbiOnly[key] = logDecodeDependencies[key].compilerOutput.abi;
+            }
+        }
+        const libraryAddresses = await ExchangeContract._deployLibrariesAsync(
+            artifact,
+            libraryArtifacts,
+            new Web3Wrapper(provider),
+            txDefaults,
+        );
+        const bytecode = linkLibrariesInBytecode(artifact, libraryAddresses);
+        return ExchangeContract.deployAsync(bytecode, abi, provider, txDefaults, logDecodeDependenciesAbiOnly, chainId);
+    }
+
     public static async deployAsync(
         bytecode: string,
         abi: ContractAbi,
@@ -366,6 +410,24 @@ export class ExchangeContract extends BaseContract {
                     },
                 ],
                 name: 'Fill',
+                outputs: [],
+                type: 'event',
+            },
+            {
+                anonymous: false,
+                inputs: [
+                    {
+                        name: 'previousOwner',
+                        type: 'address',
+                        indexed: true,
+                    },
+                    {
+                        name: 'newOwner',
+                        type: 'address',
+                        indexed: true,
+                    },
+                ],
+                name: 'OwnershipTransferred',
                 outputs: [],
                 type: 'event',
             },
@@ -601,7 +663,7 @@ export class ExchangeContract extends BaseContract {
                 name: 'batchExecuteTransactions',
                 outputs: [
                     {
-                        name: '',
+                        name: 'returnData',
                         type: 'bytes[]',
                     },
                 ],
@@ -1469,6 +1531,15 @@ export class ExchangeContract extends BaseContract {
             },
             {
                 constant: false,
+                inputs: [],
+                name: 'detachProtocolFeeCollector',
+                outputs: [],
+                payable: false,
+                stateMutability: 'nonpayable',
+                type: 'function',
+            },
+            {
+                constant: false,
                 inputs: [
                     {
                         name: 'transaction',
@@ -1756,7 +1827,7 @@ export class ExchangeContract extends BaseContract {
                 name: 'getAssetProxy',
                 outputs: [
                     {
-                        name: '',
+                        name: 'assetProxy',
                         type: 'address',
                     },
                 ],
@@ -3079,12 +3150,58 @@ export class ExchangeContract extends BaseContract {
         return abi;
     }
 
+    protected static async _deployLibrariesAsync(
+        artifact: ContractArtifact,
+        libraryArtifacts: { [libraryName: string]: ContractArtifact },
+        web3Wrapper: Web3Wrapper,
+        txDefaults: Partial<TxData>,
+        libraryAddresses: { [libraryName: string]: string } = {},
+    ): Promise<{ [libraryName: string]: string }> {
+        const links = artifact.compilerOutput.evm.bytecode.linkReferences;
+        // Go through all linked libraries, recursively deploying them if necessary.
+        for (const link of Object.values(links)) {
+            for (const libraryName of Object.keys(link)) {
+                if (!libraryAddresses[libraryName]) {
+                    // Library not yet deployed.
+                    const libraryArtifact = libraryArtifacts[libraryName];
+                    if (!libraryArtifact) {
+                        throw new Error(`Missing artifact for linked library "${libraryName}"`);
+                    }
+                    // Deploy any dependent libraries used by this library.
+                    await ExchangeContract._deployLibrariesAsync(
+                        libraryArtifact,
+                        libraryArtifacts,
+                        web3Wrapper,
+                        txDefaults,
+                        libraryAddresses,
+                    );
+                    // Deploy this library.
+                    const linkedLibraryBytecode = linkLibrariesInBytecode(libraryArtifact, libraryAddresses);
+                    const txDataWithDefaults = await BaseContract._applyDefaultsToContractTxDataAsync(
+                        {
+                            data: linkedLibraryBytecode,
+                            ...txDefaults,
+                        },
+                        web3Wrapper.estimateGasAsync.bind(web3Wrapper),
+                    );
+                    const txHash = await web3Wrapper.sendTransactionAsync(txDataWithDefaults);
+                    logUtils.log(`transactionHash: ${txHash}`);
+                    const { contractAddress } = await web3Wrapper.awaitTransactionSuccessAsync(txHash);
+                    logUtils.log(`${libraryArtifact.contractName} successfully deployed at ${contractAddress}`);
+                    libraryAddresses[libraryArtifact.contractName] = contractAddress as string;
+                }
+            }
+        }
+        return libraryAddresses;
+    }
+
     public getFunctionSignature(methodName: string): string {
         const index = this._methodABIIndex[methodName];
         const methodAbi = ExchangeContract.ABI()[index] as MethodAbi; // tslint:disable-line:no-unnecessary-type-assertion
         const functionSignature = methodAbiToFunctionSignature(methodAbi);
         return functionSignature;
     }
+
     public getABIDecodedTransactionData<T>(methodName: string, callData: string): T {
         const functionSignature = this.getFunctionSignature(methodName);
         const self = (this as any) as ExchangeContract;
@@ -3092,6 +3209,7 @@ export class ExchangeContract extends BaseContract {
         const abiDecodedCallData = abiEncoder.strictDecode<T>(callData);
         return abiDecodedCallData;
     }
+
     public getABIDecodedReturnData<T>(methodName: string, callData: string): T {
         const functionSignature = this.getFunctionSignature(methodName);
         const self = (this as any) as ExchangeContract;
@@ -3099,6 +3217,7 @@ export class ExchangeContract extends BaseContract {
         const abiDecodedCallData = abiEncoder.strictDecodeReturnValue<T>(callData);
         return abiDecodedCallData;
     }
+
     public getSelector(methodName: string): string {
         const functionSignature = this.getFunctionSignature(methodName);
         const self = (this as any) as ExchangeContract;
@@ -3118,6 +3237,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<string>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -3137,6 +3257,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<string>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -3158,6 +3279,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<boolean>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -3226,6 +3348,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -3238,7 +3361,7 @@ export class ExchangeContract extends BaseContract {
      * @param transactions Array of 0x transaction structures.
      * @param signatures Array of proofs that transactions have been signed by
      *     signer(s).
-     * @returns Array containing ABI encoded return data for each of the underlying Exchange function calls.
+     * @returns returnData Array containing ABI encoded return data for each of the underlying Exchange function calls.
      */
     public batchExecuteTransactions(
         transactions: Array<{
@@ -3289,6 +3412,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<string[]>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -3302,7 +3426,7 @@ export class ExchangeContract extends BaseContract {
      * @param takerAssetFillAmounts Array of desired amounts of takerAsset to sell
      *     in orders.
      * @param signatures Proofs that orders have been created by makers.
-     * @returns Array of amounts filled and fees paid by makers and taker.
+     * @returns fillResults Array of amounts filled and fees paid by makers and taker.
      */
     public batchFillOrKillOrders(
         orders: Array<{
@@ -3384,6 +3508,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<
                     Array<{
                         makerAssetFilledAmount: BigNumber;
@@ -3405,7 +3530,7 @@ export class ExchangeContract extends BaseContract {
      * @param takerAssetFillAmounts Array of desired amounts of takerAsset to sell
      *     in orders.
      * @param signatures Proofs that orders have been created by makers.
-     * @returns Array of amounts filled and fees paid by makers and taker.
+     * @returns fillResults Array of amounts filled and fees paid by makers and taker.
      */
     public batchFillOrders(
         orders: Array<{
@@ -3487,6 +3612,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<
                     Array<{
                         makerAssetFilledAmount: BigNumber;
@@ -3508,7 +3634,7 @@ export class ExchangeContract extends BaseContract {
      * @param takerAssetFillAmounts Array of desired amounts of takerAsset to sell
      *     in orders.
      * @param signatures Proofs that orders have been created by makers.
-     * @returns Array of amounts filled and fees paid by makers and taker.
+     * @returns fillResults Array of amounts filled and fees paid by makers and taker.
      */
     public batchFillOrdersNoThrow(
         orders: Array<{
@@ -3590,6 +3716,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<
                     Array<{
                         makerAssetFilledAmount: BigNumber;
@@ -3732,6 +3859,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<{
                     left: Array<{
                         makerAssetFilledAmount: BigNumber;
@@ -3889,6 +4017,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<{
                     left: Array<{
                         makerAssetFilledAmount: BigNumber;
@@ -3977,6 +4106,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -4029,6 +4159,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -4049,6 +4180,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<boolean>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -4068,7 +4200,58 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<string>(rawCallResult);
+            },
+            getABIEncodedTransactionData(): string {
+                return self._strictEncodeArguments(functionSignature, []);
+            },
+        };
+    }
+    /**
+     * Sets the protocolFeeCollector contract address to 0.
+     * Only callable by owner.
+     */
+    public detachProtocolFeeCollector(): ContractTxFunctionObj<void> {
+        const self = (this as any) as ExchangeContract;
+        const functionSignature = 'detachProtocolFeeCollector()';
+
+        return {
+            async sendTransactionAsync(
+                txData?: Partial<TxData> | undefined,
+                opts: SendTransactionOpts = { shouldValidate: true },
+            ): Promise<string> {
+                const txDataWithDefaults = await self._applyDefaultsToTxDataAsync(
+                    { ...txData, data: this.getABIEncodedTransactionData() },
+                    this.estimateGasAsync.bind(this),
+                );
+                if (opts.shouldValidate !== false) {
+                    await this.callAsync(txDataWithDefaults);
+                }
+                return self._web3Wrapper.sendTransactionAsync(txDataWithDefaults);
+            },
+            awaitTransactionSuccessAsync(
+                txData?: Partial<TxData>,
+                opts: AwaitTransactionSuccessOpts = { shouldValidate: true },
+            ): PromiseWithTransactionHash<TransactionReceiptWithDecodedLogs> {
+                return self._promiseWithTransactionHash(this.sendTransactionAsync(txData, opts), opts);
+            },
+            async estimateGasAsync(txData?: Partial<TxData> | undefined): Promise<number> {
+                const txDataWithDefaults = await self._applyDefaultsToTxDataAsync({
+                    ...txData,
+                    data: this.getABIEncodedTransactionData(),
+                });
+                return self._web3Wrapper.estimateGasAsync(txDataWithDefaults);
+            },
+            async callAsync(callData: Partial<CallData> = {}, defaultBlock?: BlockParam): Promise<void> {
+                BaseContract._assertCallParams(callData, defaultBlock);
+                const rawCallResult = await self._performCallAsync(
+                    { ...callData, data: this.getABIEncodedTransactionData() },
+                    defaultBlock,
+                );
+                const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
+                return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
                 return self._strictEncodeArguments(functionSignature, []);
@@ -4130,6 +4313,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<string>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -4138,10 +4322,11 @@ export class ExchangeContract extends BaseContract {
         };
     }
     /**
-     * Fills the input order. Reverts if exact takerAssetFillAmount not filled.
+     * Fills the input order. Reverts if exact `takerAssetFillAmount` not filled.
      * @param order Order struct containing order specifications.
      * @param takerAssetFillAmount Desired amount of takerAsset to sell.
      * @param signature Proof that order has been created by maker.
+     * @returns fillResults Amounts filled and fees paid.
      */
     public fillOrKillOrder(
         order: {
@@ -4219,6 +4404,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<{
                     makerAssetFilledAmount: BigNumber;
                     takerAssetFilledAmount: BigNumber;
@@ -4237,7 +4423,7 @@ export class ExchangeContract extends BaseContract {
      * @param order Order struct containing order specifications.
      * @param takerAssetFillAmount Desired amount of takerAsset to sell.
      * @param signature Proof that order has been created by maker.
-     * @returns Amounts filled and fees paid by maker and taker.
+     * @returns fillResults Amounts filled and fees paid by maker and taker.
      */
     public fillOrder(
         order: {
@@ -4315,6 +4501,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<{
                     makerAssetFilledAmount: BigNumber;
                     takerAssetFilledAmount: BigNumber;
@@ -4341,6 +4528,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<BigNumber>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -4351,7 +4539,7 @@ export class ExchangeContract extends BaseContract {
     /**
      * Gets an asset proxy.
      * @param assetProxyId Id of the asset proxy.
-     * @returns The asset proxy registered to assetProxyId. Returns 0x0 if no proxy is registered.
+     * @returns assetProxy The asset proxy address registered to assetProxyId. Returns 0x0 if no proxy is registered.
      */
     public getAssetProxy(assetProxyId: string): ContractFunctionObj<string> {
         const self = (this as any) as ExchangeContract;
@@ -4366,6 +4554,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<string>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -4376,7 +4565,7 @@ export class ExchangeContract extends BaseContract {
     /**
      * Gets information about an order: status, hash, and amount filled.
      * @param order Order to gather information on.
-     * @returns OrderInfo Information about the order and its state.         See LibOrder.OrderInfo for a complete description.
+     * @returns orderInfo Information about the order and its state.         See LibOrder.OrderInfo for a complete description.
      */
     public getOrderInfo(order: {
         makerAddress: string;
@@ -4410,6 +4599,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<{
                     orderStatus: number;
                     orderHash: string;
@@ -4443,6 +4633,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<boolean>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -4489,6 +4680,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<boolean>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -4525,6 +4717,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<boolean>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -4538,7 +4731,7 @@ export class ExchangeContract extends BaseContract {
      * @param orders Array of order specifications.
      * @param makerAssetFillAmount Minimum amount of makerAsset to buy.
      * @param signatures Proofs that orders have been signed by makers.
-     * @returns Amounts filled and fees paid by makers and taker.
+     * @returns fillResults Amounts filled and fees paid by makers and taker.
      */
     public marketBuyOrdersFillOrKill(
         orders: Array<{
@@ -4616,6 +4809,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<{
                     makerAssetFilledAmount: BigNumber;
                     takerAssetFilledAmount: BigNumber;
@@ -4636,7 +4830,7 @@ export class ExchangeContract extends BaseContract {
      * @param orders Array of order specifications.
      * @param makerAssetFillAmount Desired amount of makerAsset to buy.
      * @param signatures Proofs that orders have been signed by makers.
-     * @returns Amounts filled and fees paid by makers and taker.
+     * @returns fillResults Amounts filled and fees paid by makers and taker.
      */
     public marketBuyOrdersNoThrow(
         orders: Array<{
@@ -4714,6 +4908,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<{
                     makerAssetFilledAmount: BigNumber;
                     takerAssetFilledAmount: BigNumber;
@@ -4733,7 +4928,7 @@ export class ExchangeContract extends BaseContract {
      * @param orders Array of order specifications.
      * @param takerAssetFillAmount Minimum amount of takerAsset to sell.
      * @param signatures Proofs that orders have been signed by makers.
-     * @returns Amounts filled and fees paid by makers and taker.
+     * @returns fillResults Amounts filled and fees paid by makers and taker.
      */
     public marketSellOrdersFillOrKill(
         orders: Array<{
@@ -4811,6 +5006,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<{
                     makerAssetFilledAmount: BigNumber;
                     takerAssetFilledAmount: BigNumber;
@@ -4831,7 +5027,7 @@ export class ExchangeContract extends BaseContract {
      * @param orders Array of order specifications.
      * @param takerAssetFillAmount Desired amount of takerAsset to sell.
      * @param signatures Proofs that orders have been signed by makers.
-     * @returns Amounts filled and fees paid by makers and taker.
+     * @returns fillResults Amounts filled and fees paid by makers and taker.
      */
     public marketSellOrdersNoThrow(
         orders: Array<{
@@ -4909,6 +5105,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<{
                     makerAssetFilledAmount: BigNumber;
                     takerAssetFilledAmount: BigNumber;
@@ -5047,6 +5244,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<{
                     left: {
                         makerAssetFilledAmount: BigNumber;
@@ -5201,6 +5399,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<{
                     left: {
                         makerAssetFilledAmount: BigNumber;
@@ -5244,6 +5443,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<BigNumber>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -5263,6 +5463,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<string>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -5314,6 +5515,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -5335,6 +5537,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<boolean>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -5354,6 +5557,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<string>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -5373,6 +5577,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<BigNumber>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -5424,6 +5629,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -5475,6 +5681,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -5525,6 +5732,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -5578,6 +5786,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -5644,6 +5853,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -5664,6 +5874,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<boolean>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -5671,6 +5882,10 @@ export class ExchangeContract extends BaseContract {
             },
         };
     }
+    /**
+     * Change the owner of this contract.
+     * @param newOwner New owner address.
+     */
     public transferOwnership(newOwner: string): ContractTxFunctionObj<void> {
         const self = (this as any) as ExchangeContract;
         assert.isString('newOwner', newOwner);
@@ -5710,6 +5925,7 @@ export class ExchangeContract extends BaseContract {
                     defaultBlock,
                 );
                 const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
                 return abiEncoder.strictDecodeReturnValue<void>(rawCallResult);
             },
             getABIEncodedTransactionData(): string {
@@ -5748,6 +5964,7 @@ export class ExchangeContract extends BaseContract {
         );
         return subscriptionToken;
     }
+
     /**
      * Cancel a subscription
      * @param subscriptionToken Subscription token returned by `subscribe()`
@@ -5755,12 +5972,14 @@ export class ExchangeContract extends BaseContract {
     public unsubscribe(subscriptionToken: string): void {
         this._subscriptionManager.unsubscribe(subscriptionToken);
     }
+
     /**
      * Cancels all existing subscriptions
      */
     public unsubscribeAll(): void {
         this._subscriptionManager.unsubscribeAll();
     }
+
     /**
      * Gets historical logs without creating a subscription
      * @param eventName The Exchange contract event you would like to subscribe to.
@@ -5786,6 +6005,7 @@ export class ExchangeContract extends BaseContract {
         );
         return logs;
     }
+
     constructor(
         address: string,
         supportedProvider: SupportedProvider,

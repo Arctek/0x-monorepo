@@ -5,6 +5,30 @@ Edit the package's CHANGELOG.json file only.
 
 CHANGELOG
 
+## v3.2.0 - _February 8, 2020_
+
+    * Refactor into public libraries. (#2464)
+
+## v3.1.3 - _February 6, 2020_
+
+    * Dependencies updated
+
+## v3.1.2 - _February 4, 2020_
+
+    * Dependencies updated
+
+## v3.1.1 - _January 22, 2020_
+
+    * Set default `hardfork` option for ganache provider to `"istanbul"` (#2432)
+
+## v3.1.0 - _January 6, 2020_
+
+    * Add `locked` `Web3Config` option. (#2407)
+
+## v3.0.2 - _December 17, 2019_
+
+    * Dependencies updated
+
 ## v3.0.1 - _December 9, 2019_
 
     * Dependencies updated

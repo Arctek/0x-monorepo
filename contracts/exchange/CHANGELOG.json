@@ -1,5 +1,74 @@
 [
     {
+        "timestamp": 1581748629,
+        "version": "3.2.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "version": "3.2.0",
+        "changes": [
+            {
+                "note": "Flip `LibExchangeRichErrorDecoder` to an actual library.",
+                "pr": 2462
+            },
+            {
+                "note": "Remove dependency on `DevUtils` for asset data encoding/decoding",
+                "pr": 2462
+            }
+        ],
+        "timestamp": 1581204851
+    },
+    {
+        "timestamp": 1580988106,
+        "version": "3.1.2",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1580811564,
+        "version": "3.1.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "version": "3.1.0",
+        "changes": [
+            {
+                "note": "Uses updated event decoding to properly decodes arrays and objects.",
+                "pr": 2443
+            }
+        ],
+        "timestamp": 1579682890
+    },
+    {
+        "timestamp": 1578272714,
+        "version": "3.0.3",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1576540892,
+        "version": "3.0.2",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
         "timestamp": 1575931811,
         "version": "3.0.1",
         "changes": [

@@ -16,27 +16,25 @@
 
 */
 
-pragma solidity ^0.5.5;
+pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
-import "@0x/contracts-exchange/contracts/src/interfaces/IExchange.sol";
 import "@0x/contracts-exchange-libs/contracts/src/LibOrder.sol";
 import "@0x/contracts-exchange-libs/contracts/src/LibMath.sol";
 import "@0x/contracts-utils/contracts/src/LibBytes.sol";
 import "@0x/contracts-utils/contracts/src/LibSafeMath.sol";
+import "./Addresses.sol";
+import "./AssetBalance.sol";
 import "./LibAssetData.sol";
+import "./LibOrderTransferSimulation.sol";
 
 
 contract OrderValidationUtils is
-    LibAssetData
+    Addresses,
+    AssetBalance
 {
     using LibBytes for bytes;
     using LibSafeMath for uint256;
-
-    constructor (address _exchange)
-        public
-        LibAssetData(_exchange)
-    {}
 
     /// @dev Fetches all order-relevant information needed to validate if the supplied order is fillable.
     /// @param order The order structure.
@@ -50,7 +48,6 @@ contract OrderValidationUtils is
     /// amount of each asset that can be filled.
     function getOrderRelevantState(LibOrder.Order memory order, bytes memory signature)
         public
-        view
         returns (
             LibOrder.OrderInfo memory orderInfo,
             uint256 fillableTakerAssetAmount,
@@ -58,23 +55,22 @@ contract OrderValidationUtils is
         )
     {
         // Get info specific to order
-        orderInfo = _EXCHANGE.getOrderInfo(order);
+        orderInfo = IExchange(exchangeAddress).getOrderInfo(order);
 
         // Validate the maker's signature
         address makerAddress = order.makerAddress;
-        isValidSignature = _EXCHANGE.isValidOrderSignature(
+        isValidSignature = IExchange(exchangeAddress).isValidOrderSignature(
             order,
             signature
         );
 
         // Get the transferable amount of the `makerAsset`
-        uint256 transferableMakerAssetAmount = getTransferableAssetAmount(makerAddress, order.makerAssetData);
+        uint256 transferableMakerAssetAmount = _getTransferableConvertedMakerAssetAmount(
+            order
+        );
 
-        // Assign to stack variables to reduce redundant mloads/sloads
-        uint256 takerAssetAmount = order.takerAssetAmount;
-        uint256 makerFee = order.makerFee;
-
-        // Get the amount of `takerAsset` that is transferable to maker given the transferability of `makerAsset`, `makerFeeAsset`,
+        // Get the amount of `takerAsset` that is transferable to maker given the
+        // transferability of `makerAsset`, `makerFeeAsset`,
         // and the total amounts specified in the order
         uint256 transferableTakerAssetAmount;
         if (order.makerAssetData.equals(order.makerFeeAssetData)) {
@@ -82,33 +78,35 @@ contract OrderValidationUtils is
             // transferableMakerAssetAmount / (makerAssetAmount + makerFee)
             transferableTakerAssetAmount = LibMath.getPartialAmountFloor(
                 transferableMakerAssetAmount,
-                order.makerAssetAmount.safeAdd(makerFee),
-                takerAssetAmount
+                order.makerAssetAmount.safeAdd(order.makerFee),
+                order.takerAssetAmount
             );
         } else {
             // If `makerFee` is 0, the % that can be filled is (transferableMakerAssetAmount / makerAssetAmount)
-            if (makerFee == 0) {
+            if (order.makerFee == 0) {
                 transferableTakerAssetAmount = LibMath.getPartialAmountFloor(
                     transferableMakerAssetAmount,
                     order.makerAssetAmount,
-                    takerAssetAmount
+                    order.takerAssetAmount
                 );
 
             // If `makerAsset` does not equal `makerFeeAsset`, the % that can be filled is the lower of
             // (transferableMakerAssetAmount / makerAssetAmount) and (transferableMakerAssetFeeAmount / makerFee)
             } else {
                 // Get the transferable amount of the `makerFeeAsset`
-                uint256 transferableMakerFeeAssetAmount = getTransferableAssetAmount(makerAddress, order.makerFeeAssetData);
-
+                uint256 transferableMakerFeeAssetAmount = getTransferableAssetAmount(
+                    makerAddress,
+                    order.makerFeeAssetData
+                );
                 uint256 transferableMakerToTakerAmount = LibMath.getPartialAmountFloor(
                     transferableMakerAssetAmount,
                     order.makerAssetAmount,
-                    takerAssetAmount
+                    order.takerAssetAmount
                 );
                 uint256 transferableMakerFeeToTakerAmount = LibMath.getPartialAmountFloor(
                     transferableMakerFeeAssetAmount,
-                    makerFee,
-                    takerAssetAmount
+                    order.makerFee,
+                    order.takerAssetAmount
                 );
                 transferableTakerAssetAmount = LibSafeMath.min256(transferableMakerToTakerAmount, transferableMakerFeeToTakerAmount);
             }
@@ -116,9 +114,21 @@ contract OrderValidationUtils is
 
         // `fillableTakerAssetAmount` is the lower of the order's remaining `takerAssetAmount` and the `transferableTakerAssetAmount`
         fillableTakerAssetAmount = LibSafeMath.min256(
-            takerAssetAmount.safeSub(orderInfo.orderTakerAssetFilledAmount),
+            order.takerAssetAmount.safeSub(orderInfo.orderTakerAssetFilledAmount),
             transferableTakerAssetAmount
         );
+
+        // Ensure that all of the asset data is valid. Fee asset data only needs
+        // to be valid if the fees are nonzero.
+        if (!_areOrderAssetDatasValid(order)) {
+            fillableTakerAssetAmount = 0;
+        }
+
+        // If the order is not fillable, then the fillable taker asset amount is
+        // zero by definition.
+        if (orderInfo.orderStatus != LibOrder.OrderStatus.FILLABLE) {
+            fillableTakerAssetAmount = 0;
+        }
 
         return (orderInfo, fillableTakerAssetAmount, isValidSignature);
     }
@@ -135,7 +145,6 @@ contract OrderValidationUtils is
     /// the `takerAssetData` to get the final amount of each asset that can be filled.
     function getOrderRelevantStates(LibOrder.Order[] memory orders, bytes[] memory signatures)
         public
-        view
         returns (
             LibOrder.OrderInfo[] memory ordersInfo,
             uint256[] memory fillableTakerAssetAmounts,
@@ -157,7 +166,7 @@ contract OrderValidationUtils is
         return (ordersInfo, fillableTakerAssetAmounts, isValidSignature);
     }
 
-    /// @dev Gets the amount of an asset transferable by the owner.
+    /// @dev Gets the amount of an asset transferable by the maker of an order.
     /// @param ownerAddress Address of the owner of the asset.
     /// @param assetData Description of tokens, per the AssetProxy contract specification.
     /// @return The amount of the asset tranferable by the owner.
@@ -167,11 +176,104 @@ contract OrderValidationUtils is
     /// the individual asset amounts located within the `assetData`.
     function getTransferableAssetAmount(address ownerAddress, bytes memory assetData)
         public
-        view
         returns (uint256 transferableAssetAmount)
     {
-        (uint256 balance, uint256 allowance) = getBalanceAndAssetProxyAllowance(ownerAddress, assetData);
+        (uint256 balance, uint256 allowance) = getBalanceAndAssetProxyAllowance(
+            ownerAddress,
+            assetData
+        );
         transferableAssetAmount = LibSafeMath.min256(balance, allowance);
         return transferableAssetAmount;
+    }
+
+    /// @dev Gets the amount of an asset transferable by the maker of an order.
+    ///      Similar to `getTransferableAssetAmount()`, but can handle maker asset
+    ///      types that depend on taker assets being transferred first (e.g., Dydx bridge).
+    /// @param order The order.
+    /// @return transferableAssetAmount Amount of maker asset that can be transferred.
+    function _getTransferableConvertedMakerAssetAmount(
+        LibOrder.Order memory order
+    )
+        internal
+        returns (uint256 transferableAssetAmount)
+    {
+        (uint256 balance, uint256 allowance) = _getConvertibleMakerBalanceAndAssetProxyAllowance(order);
+        transferableAssetAmount = LibSafeMath.min256(balance, allowance);
+        return transferableAssetAmount;
+    }
+
+    /// @dev Checks that the asset data contained in a ZeroEx is valid and returns
+    /// a boolean that indicates whether or not the asset data was found to be valid.
+    /// @param order A ZeroEx order to validate.
+    /// @return The validatity of the asset data.
+    function _areOrderAssetDatasValid(LibOrder.Order memory order)
+        internal
+        pure
+        returns (bool)
+    {
+        return _isAssetDataValid(order.makerAssetData) &&
+            (order.makerFee == 0 || _isAssetDataValid(order.makerFeeAssetData)) &&
+            _isAssetDataValid(order.takerAssetData) &&
+            (order.takerFee == 0 || _isAssetDataValid(order.takerFeeAssetData));
+    }
+
+    /// @dev This function handles the edge cases around taker validation. This function
+    ///      currently attempts to find duplicate ERC721 token's in the taker
+    ///      multiAssetData.
+    /// @param assetData The asset data that should be validated.
+    /// @return Whether or not the order should be considered valid.
+    function _isAssetDataValid(bytes memory assetData)
+        internal
+        pure
+        returns (bool)
+    {
+        // Asset data must be composed of an asset proxy Id and a bytes segment with
+        // a length divisible by 32.
+        if (assetData.length % 32 != 4) {
+            return false;
+        }
+
+        // Only process the taker asset data if it is multiAssetData.
+        bytes4 assetProxyId = assetData.readBytes4(0);
+        if (assetProxyId != IAssetData(address(0)).MultiAsset.selector) {
+            return true;
+        }
+
+        // Get array of values and array of assetDatas
+        (, , bytes[] memory nestedAssetData) =
+            LibAssetData.decodeMultiAssetData(assetData);
+
+        uint256 length = nestedAssetData.length;
+        for (uint256 i = 0; i != length; i++) {
+            // TODO(jalextowle): Implement similar validation for non-fungible ERC1155 asset data.
+            bytes4 nestedAssetProxyId = nestedAssetData[i].readBytes4(0);
+            if (nestedAssetProxyId == IAssetData(address(0)).ERC721Token.selector) {
+                if (_isAssetDataDuplicated(nestedAssetData, i)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /// Determines whether or not asset data is duplicated later in the nested asset data.
+    /// @param nestedAssetData The asset data to scan for duplication.
+    /// @param startIdx The index where the scan should begin.
+    /// @return A boolean reflecting whether or not the starting asset data was duplicated.
+    function _isAssetDataDuplicated(
+        bytes[] memory nestedAssetData,
+        uint256 startIdx
+    )
+        internal
+        pure
+        returns (bool)
+    {
+        uint256 length = nestedAssetData.length;
+        for (uint256 i = startIdx + 1; i < length; i++) {
+            if (nestedAssetData[startIdx].equals(nestedAssetData[i])) {
+                return true;
+            }
+        }
     }
 }

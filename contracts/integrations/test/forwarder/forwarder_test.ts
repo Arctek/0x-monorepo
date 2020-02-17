@@ -1,7 +1,16 @@
+import {
+    artifacts as assetProxyArtifacts,
+    encodeERC20AssetData,
+    encodeERC721AssetData,
+    encodeMultiAssetData,
+    encodeStaticCallAssetData,
+    TestStaticCallTargetContract,
+} from '@0x/contracts-asset-proxy';
 import { DummyERC20TokenContract } from '@0x/contracts-erc20';
 import { DummyERC721TokenContract } from '@0x/contracts-erc721';
 import { artifacts as exchangeArtifacts, ExchangeContract } from '@0x/contracts-exchange';
 import { artifacts, ExchangeForwarderRevertErrors, ForwarderContract } from '@0x/contracts-exchange-forwarder';
+import { MixinWethUtilsRevertErrors } from '@0x/contracts-extensions';
 import {
     blockchainTests,
     constants,
@@ -37,6 +46,8 @@ blockchainTests('Forwarder integration tests', env => {
     let nftId: BigNumber;
     let wethAssetData: string;
     let makerAssetData: string;
+    let staticCallSuccessAssetData: string;
+    let staticCallFailureAssetData: string;
 
     let maker: Maker;
     let taker: Taker;
@@ -51,12 +62,27 @@ blockchainTests('Forwarder integration tests', env => {
         });
         forwarder = await deployForwarderAsync(deployment, env);
 
+        const staticCallTarget = await TestStaticCallTargetContract.deployFrom0xArtifactAsync(
+            assetProxyArtifacts.TestStaticCallTarget,
+            env.provider,
+            env.txDefaults,
+            assetProxyArtifacts,
+        );
+
         [makerToken, makerFeeToken, anotherErc20Token] = deployment.tokens.erc20;
         [erc721Token] = deployment.tokens.erc721;
-        wethAssetData = deployment.assetDataEncoder
-            .ERC20Token(deployment.tokens.weth.address)
-            .getABIEncodedTransactionData();
-        makerAssetData = deployment.assetDataEncoder.ERC20Token(makerToken.address).getABIEncodedTransactionData();
+        wethAssetData = encodeERC20AssetData(deployment.tokens.weth.address);
+        makerAssetData = encodeERC20AssetData(makerToken.address);
+        staticCallSuccessAssetData = encodeStaticCallAssetData(
+            staticCallTarget.address,
+            staticCallTarget.assertEvenNumber(new BigNumber(2)).getABIEncodedTransactionData(),
+            constants.KECCAK256_NULL,
+        );
+        staticCallFailureAssetData = encodeStaticCallAssetData(
+            staticCallTarget.address,
+            staticCallTarget.assertEvenNumber(new BigNumber(1)).getABIEncodedTransactionData(),
+            constants.KECCAK256_NULL,
+        );
 
         taker = new Taker({ name: 'Taker', deployment });
         orderFeeRecipient = new FeeRecipient({
@@ -77,9 +103,7 @@ blockchainTests('Forwarder integration tests', env => {
                 makerAssetData,
                 takerAssetData: wethAssetData,
                 takerFee: constants.ZERO_AMOUNT,
-                makerFeeAssetData: deployment.assetDataEncoder
-                    .ERC20Token(makerFeeToken.address)
-                    .getABIEncodedTransactionData(),
+                makerFeeAssetData: encodeERC20AssetData(makerFeeToken.address),
                 takerFeeAssetData: wethAssetData,
             },
         });
@@ -125,6 +149,7 @@ blockchainTests('Forwarder integration tests', env => {
                 env.txDefaults,
                 {},
                 exchange.address,
+                constants.NULL_ADDRESS,
                 deployment.tokens.weth.address,
             );
             await expect(deployForwarder).to.revertWith(
@@ -168,9 +193,7 @@ blockchainTests('Forwarder integration tests', env => {
             await testFactory.marketSellTestAsync(orders, 1.34);
         });
         it('should fail to fill an order with a percentage fee if the asset proxy is not yet approved', async () => {
-            const unapprovedAsset = deployment.assetDataEncoder
-                .ERC20Token(anotherErc20Token.address)
-                .getABIEncodedTransactionData();
+            const unapprovedAsset = encodeERC20AssetData(anotherErc20Token.address);
             const order = await maker.signOrderAsync({
                 makerAssetData: unapprovedAsset,
                 takerFee: toBaseUnitAmount(2),
@@ -232,9 +255,7 @@ blockchainTests('Forwarder integration tests', env => {
         });
         it('should fill orders with different makerAssetData', async () => {
             const firstOrder = await maker.signOrderAsync();
-            const secondOrderMakerAssetData = deployment.assetDataEncoder
-                .ERC20Token(anotherErc20Token.address)
-                .getABIEncodedTransactionData();
+            const secondOrderMakerAssetData = encodeERC20AssetData(anotherErc20Token.address);
             const secondOrder = await maker.signOrderAsync({
                 makerAssetData: secondOrderMakerAssetData,
             });
@@ -243,9 +264,7 @@ blockchainTests('Forwarder integration tests', env => {
             await testFactory.marketSellTestAsync(orders, 1.5);
         });
         it('should fail to fill an order with a fee denominated in an asset other than makerAsset or WETH', async () => {
-            const takerFeeAssetData = deployment.assetDataEncoder
-                .ERC20Token(anotherErc20Token.address)
-                .getABIEncodedTransactionData();
+            const takerFeeAssetData = encodeERC20AssetData(anotherErc20Token.address);
             const order = await maker.signOrderAsync({
                 takerFeeAssetData,
                 takerFee: toBaseUnitAmount(1),
@@ -265,14 +284,14 @@ blockchainTests('Forwarder integration tests', env => {
                 makerAssetAmount: constants.ZERO_AMOUNT,
             });
             const fillableOrder = await maker.signOrderAsync();
-            await testFactory.marketSellTestAsync([unfillableOrder, fillableOrder], 1.5);
+            await testFactory.marketSellTestAsync([unfillableOrder, fillableOrder], 1.5, { noopOrders: [0] });
         });
         it('should skip over an order with an invalid taker asset amount', async () => {
             const unfillableOrder = await maker.signOrderAsync({
                 takerAssetAmount: constants.ZERO_AMOUNT,
             });
             const fillableOrder = await maker.signOrderAsync();
-            await testFactory.marketSellTestAsync([unfillableOrder, fillableOrder], 1.5);
+            await testFactory.marketSellTestAsync([unfillableOrder, fillableOrder], 1.5, { noopOrders: [0] });
         });
         it('should skip over an expired order', async () => {
             const currentTimestamp = await getLatestBlockTimestampAsync();
@@ -280,19 +299,65 @@ blockchainTests('Forwarder integration tests', env => {
                 expirationTimeSeconds: new BigNumber(currentTimestamp).minus(10),
             });
             const fillableOrder = await maker.signOrderAsync();
-            await testFactory.marketSellTestAsync([expiredOrder, fillableOrder], 1.5);
+            await testFactory.marketSellTestAsync([expiredOrder, fillableOrder], 1.5, { noopOrders: [0] });
         });
         it('should skip over a fully filled order', async () => {
             const fullyFilledOrder = await maker.signOrderAsync();
             await testFactory.marketSellTestAsync([fullyFilledOrder], 1);
             const fillableOrder = await maker.signOrderAsync();
-            await testFactory.marketSellTestAsync([fullyFilledOrder, fillableOrder], 1.5);
+            await testFactory.marketSellTestAsync([fullyFilledOrder, fillableOrder], 1.5, { noopOrders: [0] });
         });
         it('should skip over a cancelled order', async () => {
             const cancelledOrder = await maker.signOrderAsync();
             await maker.cancelOrderAsync(cancelledOrder);
             const fillableOrder = await maker.signOrderAsync();
-            await testFactory.marketSellTestAsync([cancelledOrder, fillableOrder], 1.5);
+            await testFactory.marketSellTestAsync([cancelledOrder, fillableOrder], 1.5, { noopOrders: [0] });
+        });
+        for (const orderAssetData of ['makerAssetData', 'makerFeeAssetData']) {
+            it(`should fill an order with StaticCall ${orderAssetData} if the StaticCall succeeds`, async () => {
+                const staticCallOrder = await maker.signOrderAsync({
+                    [orderAssetData]: staticCallSuccessAssetData,
+                });
+                const nonStaticCallOrder = await maker.signOrderAsync();
+                await testFactory.marketSellTestAsync([staticCallOrder, nonStaticCallOrder], 1.5);
+            });
+            it(`should not fill an order with StaticCall ${orderAssetData} if the StaticCall fails`, async () => {
+                const staticCallOrder = await maker.signOrderAsync({
+                    [orderAssetData]: staticCallFailureAssetData,
+                });
+                const nonStaticCallOrder = await maker.signOrderAsync();
+                await testFactory.marketSellTestAsync([staticCallOrder, nonStaticCallOrder], 1.5, { noopOrders: [0] });
+            });
+        }
+        it('should fill an order with multiAsset makerAssetData', async () => {
+            const multiAssetData = encodeMultiAssetData([new BigNumber(2)], [makerAssetData]);
+            const multiAssetOrder = await maker.signOrderAsync({
+                makerAssetData: multiAssetData,
+            });
+            const nonMultiAssetOrder = await maker.signOrderAsync();
+            await testFactory.marketSellTestAsync([multiAssetOrder, nonMultiAssetOrder], 1.3);
+        });
+        it('should fill an order with multiAsset makerAssetData (nested StaticCall succeeds)', async () => {
+            const multiAssetData = encodeMultiAssetData(
+                [new BigNumber(2), new BigNumber(3)],
+                [makerAssetData, staticCallSuccessAssetData],
+            );
+            const multiAssetOrder = await maker.signOrderAsync({
+                makerAssetData: multiAssetData,
+            });
+            const nonMultiAssetOrder = await maker.signOrderAsync();
+            await testFactory.marketSellTestAsync([multiAssetOrder, nonMultiAssetOrder], 1.3);
+        });
+        it('should skip over an order with multiAsset makerAssetData where the nested StaticCall fails', async () => {
+            const multiAssetData = encodeMultiAssetData(
+                [new BigNumber(2), new BigNumber(3)],
+                [makerAssetData, staticCallFailureAssetData],
+            );
+            const multiAssetOrder = await maker.signOrderAsync({
+                makerAssetData: multiAssetData,
+            });
+            const nonMultiAssetOrder = await maker.signOrderAsync();
+            await testFactory.marketSellTestAsync([multiAssetOrder, nonMultiAssetOrder], 1.3, { noopOrders: [0] });
         });
     });
     blockchainTests.resets('marketSellOrdersWithEth with extra fees', () => {
@@ -355,7 +420,7 @@ blockchainTests('Forwarder integration tests', env => {
             });
             const forwarderFeeAmounts = [toBaseUnitAmount(0.2)];
             const forwarderFeeRecipientAddresses: string[] = [];
-            const revertError = new ExchangeForwarderRevertErrors.EthFeeLengthMismatchError(
+            const revertError = new MixinWethUtilsRevertErrors.EthFeeLengthMismatchError(
                 new BigNumber(forwarderFeeAmounts.length),
                 new BigNumber(forwarderFeeRecipientAddresses.length),
             );
@@ -372,7 +437,7 @@ blockchainTests('Forwarder integration tests', env => {
             });
             const forwarderFeeAmounts: BigNumber[] = [];
             const forwarderFeeRecipientAddresses = [randomAddress()];
-            const revertError = new ExchangeForwarderRevertErrors.EthFeeLengthMismatchError(
+            const revertError = new MixinWethUtilsRevertErrors.EthFeeLengthMismatchError(
                 new BigNumber(forwarderFeeAmounts.length),
                 new BigNumber(forwarderFeeRecipientAddresses.length),
             );
@@ -402,9 +467,7 @@ blockchainTests('Forwarder integration tests', env => {
         });
         it('should buy exactly makerAssetBuyAmount in orders with different makerAssetData', async () => {
             const firstOrder = await maker.signOrderAsync();
-            const secondOrderMakerAssetData = deployment.assetDataEncoder
-                .ERC20Token(anotherErc20Token.address)
-                .getABIEncodedTransactionData();
+            const secondOrderMakerAssetData = encodeERC20AssetData(anotherErc20Token.address);
             const secondOrder = await maker.signOrderAsync({
                 makerAssetData: secondOrderMakerAssetData,
             });
@@ -453,9 +516,7 @@ blockchainTests('Forwarder integration tests', env => {
         it('should buy an ERC721 asset from a single order', async () => {
             const erc721Order = await maker.signOrderAsync({
                 makerAssetAmount: new BigNumber(1),
-                makerAssetData: deployment.assetDataEncoder
-                    .ERC721Token(erc721Token.address, nftId)
-                    .getABIEncodedTransactionData(),
+                makerAssetData: encodeERC721AssetData(erc721Token.address, nftId),
                 takerFeeAssetData: wethAssetData,
             });
             await testFactory.marketBuyTestAsync([erc721Order], 1);
@@ -463,18 +524,14 @@ blockchainTests('Forwarder integration tests', env => {
         it('should buy an ERC721 asset and pay a WETH fee', async () => {
             const erc721orderWithWethFee = await maker.signOrderAsync({
                 makerAssetAmount: new BigNumber(1),
-                makerAssetData: deployment.assetDataEncoder
-                    .ERC721Token(erc721Token.address, nftId)
-                    .getABIEncodedTransactionData(),
+                makerAssetData: encodeERC721AssetData(erc721Token.address, nftId),
                 takerFee: toBaseUnitAmount(1),
                 takerFeeAssetData: wethAssetData,
             });
             await testFactory.marketBuyTestAsync([erc721orderWithWethFee], 1);
         });
         it('should fail to fill an order with a fee denominated in an asset other than makerAsset or WETH', async () => {
-            const takerFeeAssetData = deployment.assetDataEncoder
-                .ERC20Token(anotherErc20Token.address)
-                .getABIEncodedTransactionData();
+            const takerFeeAssetData = encodeERC20AssetData(anotherErc20Token.address);
             const order = await maker.signOrderAsync({
                 takerFeeAssetData,
                 takerFee: toBaseUnitAmount(1),
@@ -494,14 +551,14 @@ blockchainTests('Forwarder integration tests', env => {
                 makerAssetAmount: constants.ZERO_AMOUNT,
             });
             const fillableOrder = await maker.signOrderAsync();
-            await testFactory.marketBuyTestAsync([unfillableOrder, fillableOrder], 1.5);
+            await testFactory.marketBuyTestAsync([unfillableOrder, fillableOrder], 1.5, { noopOrders: [0] });
         });
         it('should skip over an order with an invalid taker asset amount', async () => {
             const unfillableOrder = await maker.signOrderAsync({
                 takerAssetAmount: constants.ZERO_AMOUNT,
             });
             const fillableOrder = await maker.signOrderAsync();
-            await testFactory.marketBuyTestAsync([unfillableOrder, fillableOrder], 1.5);
+            await testFactory.marketBuyTestAsync([unfillableOrder, fillableOrder], 1.5, { noopOrders: [0] });
         });
         it('should skip over an expired order', async () => {
             const currentTimestamp = await getLatestBlockTimestampAsync();
@@ -509,19 +566,19 @@ blockchainTests('Forwarder integration tests', env => {
                 expirationTimeSeconds: new BigNumber(currentTimestamp).minus(10),
             });
             const fillableOrder = await maker.signOrderAsync();
-            await testFactory.marketBuyTestAsync([expiredOrder, fillableOrder], 1.5);
+            await testFactory.marketBuyTestAsync([expiredOrder, fillableOrder], 1.5, { noopOrders: [0] });
         });
         it('should skip over a fully filled order', async () => {
             const fullyFilledOrder = await maker.signOrderAsync();
             await testFactory.marketBuyTestAsync([fullyFilledOrder], 1);
             const fillableOrder = await maker.signOrderAsync();
-            await testFactory.marketBuyTestAsync([fullyFilledOrder, fillableOrder], 1.5);
+            await testFactory.marketBuyTestAsync([fullyFilledOrder, fillableOrder], 1.5, { noopOrders: [0] });
         });
         it('should skip over a cancelled order', async () => {
             const cancelledOrder = await maker.signOrderAsync();
             await maker.cancelOrderAsync(cancelledOrder);
             const fillableOrder = await maker.signOrderAsync();
-            await testFactory.marketBuyTestAsync([cancelledOrder, fillableOrder], 1.5);
+            await testFactory.marketBuyTestAsync([cancelledOrder, fillableOrder], 1.5, { noopOrders: [0] });
         });
         it('Should buy slightly greater makerAsset when exchange rate is rounded', async () => {
             // The 0x Protocol contracts round the exchange rate in favor of the Maker.
@@ -621,6 +678,52 @@ blockchainTests('Forwarder integration tests', env => {
             await balanceStore.updateBalancesAsync();
             balanceStore.assertEquals(expectedBalances);
         });
+        for (const orderAssetData of ['makerAssetData', 'makerFeeAssetData', 'takerFeeAssetData']) {
+            it(`should fill an order with StaticCall ${orderAssetData} if the StaticCall succeeds`, async () => {
+                const staticCallOrder = await maker.signOrderAsync({
+                    [orderAssetData]: staticCallSuccessAssetData,
+                });
+                const nonStaticCallOrder = await maker.signOrderAsync();
+                await testFactory.marketBuyTestAsync([staticCallOrder, nonStaticCallOrder], 1.5);
+            });
+            it(`should not fill an order with StaticCall ${orderAssetData} if the StaticCall fails`, async () => {
+                const staticCallOrder = await maker.signOrderAsync({
+                    [orderAssetData]: staticCallFailureAssetData,
+                });
+                const nonStaticCallOrder = await maker.signOrderAsync();
+                await testFactory.marketBuyTestAsync([staticCallOrder, nonStaticCallOrder], 1.5, { noopOrders: [0] });
+            });
+        }
+        it('should fill an order with multiAsset makerAssetData', async () => {
+            const multiAssetData = encodeMultiAssetData([new BigNumber(2)], [makerAssetData]);
+            const multiAssetOrder = await maker.signOrderAsync({
+                makerAssetData: multiAssetData,
+            });
+            const nonMultiAssetOrder = await maker.signOrderAsync();
+            await testFactory.marketBuyTestAsync([multiAssetOrder, nonMultiAssetOrder], 1.3);
+        });
+        it('should fill an order with multiAsset makerAssetData (nested StaticCall succeeds)', async () => {
+            const multiAssetData = encodeMultiAssetData(
+                [new BigNumber(2), new BigNumber(3)],
+                [makerAssetData, staticCallSuccessAssetData],
+            );
+            const multiAssetOrder = await maker.signOrderAsync({
+                makerAssetData: multiAssetData,
+            });
+            const nonMultiAssetOrder = await maker.signOrderAsync();
+            await testFactory.marketBuyTestAsync([multiAssetOrder, nonMultiAssetOrder], 1.3);
+        });
+        it('should skip over an order with multiAsset makerAssetData where the nested StaticCall fails', async () => {
+            const multiAssetData = encodeMultiAssetData(
+                [new BigNumber(2), new BigNumber(3)],
+                [makerAssetData, staticCallFailureAssetData],
+            );
+            const multiAssetOrder = await maker.signOrderAsync({
+                makerAssetData: multiAssetData,
+            });
+            const nonMultiAssetOrder = await maker.signOrderAsync();
+            await testFactory.marketBuyTestAsync([multiAssetOrder, nonMultiAssetOrder], 1.3, { noopOrders: [0] });
+        });
     });
     blockchainTests.resets('marketBuyOrdersWithEth with extra fees', () => {
         it('should buy the asset and send fee to feeRecipient', async () => {
@@ -651,7 +754,7 @@ blockchainTests('Forwarder integration tests', env => {
             const order = await maker.signOrderAsync();
             const forwarderFeeAmounts = [toBaseUnitAmount(1)];
             const value = forwarderFeeAmounts[0].minus(1);
-            const revertError = new ExchangeForwarderRevertErrors.InsufficientEthForFeeError(
+            const revertError = new MixinWethUtilsRevertErrors.InsufficientEthForFeeError(
                 forwarderFeeAmounts[0],
                 value,
             );

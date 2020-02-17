@@ -23,7 +23,7 @@ jobs:
             #       command: npm set prefix=/home/circleci/npm && echo 'export PATH=$HOME/circleci/npm/bin:$PATH' >> /home/circleci/.bashrc
             - run:
                   name: install-yarn
-                  command: npm install --global yarn@1.17.0
+                  command: npm install --force --global yarn@1.17.0
             - run:
                   name: yarn
                   command: yarn --frozen-lockfile --ignore-engines install || yarn --frozen-lockfile --ignore-engines install
@@ -47,7 +47,7 @@ jobs:
             - restore_cache:
                   keys:
                       - repo-{{ .Environment.CIRCLE_SHA1 }}
-            - run: yarn wsrun test:circleci @0x/contracts-multisig @0x/contracts-utils @0x/contracts-exchange-libs @0x/contracts-erc20 @0x/contracts-erc721 @0x/contracts-erc1155 @0x/contracts-extensions @0x/contracts-asset-proxy @0x/contracts-exchange @0x/contracts-exchange-forwarder @0x/contracts-coordinator @0x/contracts-tests @0x/contracts-staking
+            - run: yarn wsrun test:circleci @0x/contracts-multisig @0x/contracts-utils @0x/contracts-exchange-libs @0x/contracts-erc20 @0x/contracts-erc721 @0x/contracts-erc1155 @0x/contracts-extensions @0x/contracts-asset-proxy @0x/contracts-exchange @0x/contracts-exchange-forwarder @0x/contracts-coordinator @0x/contracts-staking
     test-exchange-ganache-3.0:
         resource_class: medium+
         docker:
@@ -77,7 +77,7 @@ jobs:
             - restore_cache:
                   keys:
                       - repo-{{ .Environment.CIRCLE_SHA1 }}
-            - run: yarn wsrun test:circleci @0x/contracts-multisig @0x/contracts-utils @0x/contracts-exchange-libs @0x/contracts-erc20 @0x/contracts-erc721 @0x/contracts-erc1155 @0x/contracts-asset-proxy @0x/contracts-exchange-forwarder @0x/contracts-tests @0x/contracts-staking @0x/contracts-coordinator @0x/contracts-erc20-bridge-sampler 
+            - run: yarn wsrun test:circleci @0x/contracts-multisig @0x/contracts-utils @0x/contracts-exchange-libs @0x/contracts-erc20 @0x/contracts-erc721 @0x/contracts-erc1155 @0x/contracts-asset-proxy @0x/contracts-exchange-forwarder @0x/contracts-staking @0x/contracts-coordinator @0x/contracts-erc20-bridge-sampler
             # TODO(dorothy-zbornak): Re-enable after updating this package for
             # 3.0. At that time, also remove exclusion from monorepo
             # package.json's test script.
@@ -193,17 +193,14 @@ jobs:
         working_directory: ~/repo
         docker:
             - image: nikolaik/python-nodejs:python3.7-nodejs8
-            - image: 0xorg/ganache-cli
+            - image: 0xorg/ganache-cli:6.0.0
             - image: 0xorg/mesh:0xV3
               environment:
                   ETHEREUM_RPC_URL: 'http://localhost:8545'
-                  ETHEREUM_NETWORK_ID: '50'
                   ETHEREUM_CHAIN_ID: '1337'
-                  USE_BOOTSTRAP_LIST: 'true'
-                  VERBOSITY: 3
-                  PRIVATE_KEY_PATH: ''
-                  BLOCK_POLLING_INTERVAL: '5s'
-                  P2P_LISTEN_PORT: '60557'
+                  VERBOSITY: 5
+                  BLOCK_POLLING_INTERVAL: '50ms'
+                  ETHEREUM_RPC_MAX_REQUESTS_PER_24_HR_UTC: '1778000'
               command: |
                   sh -c "waitForGanache () { until printf 'POST /\r\nContent-Length: 26\r\n\r\n{\"method\":\"net_listening\"}' | nc localhost 8545 | grep true; do continue; done }; waitForGanache && ./mesh"
             - image: 0xorg/launch-kit-backend:v3

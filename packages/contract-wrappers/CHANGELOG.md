@@ -5,6 +5,40 @@ Edit the package's CHANGELOG.json file only.
 
 CHANGELOG
 
+## v13.6.0 - _February 15, 2020_
+
+    * Add Broker and GodsUnchainedValidator wrappers (#2469)
+    * Updated Forwarder wrapper (#2469)
+
+## v13.5.0 - _February 8, 2020_
+
+    * Export `EvmBytecodeOutputLinkReferences` type. (#2462)
+    * Remove `LibTransactionDecoder` (#2464)
+    * Update `IERC20BridgeSampler` wrapper (#2477)
+
+## v13.4.2 - _February 6, 2020_
+
+    * Dependencies updated
+
+## v13.4.1 - _February 4, 2020_
+
+    * Dependencies updated
+
+## v13.4.0 - _January 22, 2020_
+
+    * Update `DevUtils` wrapper (#2436)
+    * Update all wrappers. (#2432)
+    * Regenerate wrappers to catch empty reverts on live networks. (#2433)
+    * Update `IERC20BridgeSampler` (#2427)
+
+## v13.3.0 - _January 6, 2020_
+
+    * Added updated `DevUtils` wrapper (#2402)
+
+## v13.2.0 - _December 17, 2019_
+
+    * Add `IERC20BridgeSampler` wrapper (#2353)
+
 ## v13.1.0 - _December 9, 2019_
 
     * Add wrapper for `IAssetDataContract` (#2373)

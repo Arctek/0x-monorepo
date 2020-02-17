@@ -5,6 +5,35 @@ Edit the package's CHANGELOG.json file only.
 
 CHANGELOG
 
+## v3.1.1 - _February 15, 2020_
+
+    * Dependencies updated
+
+## v3.1.0 - _February 8, 2020_
+
+    * Add `allowance()` and `balanceOf()` to `LibERC20Token` (#2464)
+    * Fix broken tests (#2456)
+
+## v3.0.6 - _February 6, 2020_
+
+    * Dependencies updated
+
+## v3.0.5 - _February 4, 2020_
+
+    * Dependencies updated
+
+## v3.0.4 - _January 22, 2020_
+
+    * Dependencies updated
+
+## v3.0.3 - _January 6, 2020_
+
+    * Dependencies updated
+
+## v3.0.2 - _December 17, 2019_
+
+    * Dependencies updated
+
 ## v3.0.1 - _December 9, 2019_
 
     * Dependencies updated

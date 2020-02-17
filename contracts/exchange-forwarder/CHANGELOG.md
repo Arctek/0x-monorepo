@@ -5,6 +5,34 @@ Edit the package's CHANGELOG.json file only.
 
 CHANGELOG
 
+## v4.2.1 - _February 15, 2020_
+
+    * Dependencies updated
+
+## v4.2.0 - _February 8, 2020_
+
+    * Export `EvmBytecodeOutputLinkReferences` type. (#2462)
+
+## v4.1.0 - _February 6, 2020_
+
+    * Refactor, moved LibAssetDataTransfer and MixinWeth(Utils) to extensions (#2455)
+
+## v4.0.5 - _February 4, 2020_
+
+    * Dependencies updated
+
+## v4.0.4 - _January 22, 2020_
+
+    * Dependencies updated
+
+## v4.0.3 - _January 6, 2020_
+
+    * Dependencies updated
+
+## v4.0.2 - _December 17, 2019_
+
+    * Dependencies updated
+
 ## v4.0.1 - _December 9, 2019_
 
     * Dependencies updated

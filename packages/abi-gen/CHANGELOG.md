@@ -5,6 +5,31 @@ Edit the package's CHANGELOG.json file only.
 
 CHANGELOG
 
+## v5.2.0 - _February 8, 2020_
+
+    * Support deploying contracts with unliked libraries through `deployWithLibrariesFrom0xArtifactAsync()` (#2463)
+
+## v5.1.2 - _February 6, 2020_
+
+    * Dependencies updated
+
+## v5.1.1 - _February 4, 2020_
+
+    * Dependencies updated
+
+## v5.1.0 - _January 22, 2020_
+
+    * Catch empty call reverts on live networks. (#2433)
+    * Regenerate test outputs. (#2433)
+
+## v5.0.3 - _January 6, 2020_
+
+    * Dependencies updated
+
+## v5.0.2 - _December 17, 2019_
+
+    * Dependencies updated
+
 ## v5.0.1 - _December 9, 2019_
 
     * Dependencies updated

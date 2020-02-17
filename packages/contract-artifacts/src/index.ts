@@ -1,4 +1,5 @@
 import * as AssetProxyOwner from '../artifacts/AssetProxyOwner.json';
+import * as Broker from '../artifacts/Broker.json';
 import * as Coordinator from '../artifacts/Coordinator.json';
 import * as CoordinatorRegistry from '../artifacts/CoordinatorRegistry.json';
 import * as DevUtils from '../artifacts/DevUtils.json';
@@ -12,6 +13,7 @@ import * as ERC721Proxy from '../artifacts/ERC721Proxy.json';
 import * as ERC721Token from '../artifacts/ERC721Token.json';
 import * as Exchange from '../artifacts/Exchange.json';
 import * as Forwarder from '../artifacts/Forwarder.json';
+import * as GodsUnchainedValidator from '../artifacts/GodsUnchainedValidator.json';
 import * as IAssetProxy from '../artifacts/IAssetProxy.json';
 import * as IValidator from '../artifacts/IValidator.json';
 import * as IWallet from '../artifacts/IWallet.json';
@@ -23,9 +25,11 @@ import * as WETH9 from '../artifacts/WETH9.json';
 import * as ZRXToken from '../artifacts/ZRXToken.json';
 import * as ERC20BridgeProxy from '../artifacts/ERC20BridgeProxy.json';
 import * as ZrxVault from '../artifacts/ZrxVault.json';
+import * as IERC20BridgeSampler from '../artifacts/IERC20BridgeSampler.json';
 
 export {
     AssetProxyOwner,
+    Broker,
     DevUtils,
     DummyERC20Token,
     DummyERC721Token,
@@ -38,6 +42,7 @@ export {
     ERC721Token,
     Exchange,
     Forwarder,
+    GodsUnchainedValidator,
     IAssetProxy,
     IValidator,
     IWallet,
@@ -50,4 +55,5 @@ export {
     Staking,
     StakingProxy,
     ZrxVault,
+    IERC20BridgeSampler,
 };

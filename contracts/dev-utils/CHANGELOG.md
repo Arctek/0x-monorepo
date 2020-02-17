@@ -5,6 +5,35 @@ Edit the package's CHANGELOG.json file only.
 
 CHANGELOG
 
+## v1.1.1 - _February 15, 2020_
+
+    * Dependencies updated
+
+## v1.1.0 - _February 8, 2020_
+
+    * Refactor mixins into public libraries. (#2464)
+    * Remove `LibTransactionDecoder` export (#2464)
+
+## v1.0.6 - _February 6, 2020_
+
+    * Dependencies updated
+
+## v1.0.5 - _February 4, 2020_
+
+    * Dependencies updated
+
+## v1.0.4 - _January 22, 2020_
+
+    * Dependencies updated
+
+## v1.0.3 - _January 6, 2020_
+
+    * Fixed ERC721 duplicate token ID bug (#2400)
+
+## v1.0.2 - _December 17, 2019_
+
+    * Dependencies updated
+
 ## v1.0.1 - _December 9, 2019_
 
     * Dependencies updated

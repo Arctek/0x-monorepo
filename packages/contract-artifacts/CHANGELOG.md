@@ -5,6 +5,35 @@ Edit the package's CHANGELOG.json file only.
 
 CHANGELOG
 
+## v3.6.0 - _February 15, 2020_
+
+    * Add Broker and GodsUnchainedValidator artifacts (#2469)
+    * Updated Forwarder artifact (#2469)
+
+## v3.5.0 - _February 8, 2020_
+
+    * Update `DevUtils` artifact (#2464)
+    * Remove `LibTransactionDecoder` artifact (#2464)
+    * Update `IERC20BridgeSampler` artifact (#2477)
+
+## v3.4.1 - _February 6, 2020_
+
+    * Dependencies updated
+
+## v3.4.0 - _January 22, 2020_
+
+    * Update `DevUtils` artifact (#2436)
+    * Update all artifacts. (#2432)
+    * Update `IERC20BridgeSampler artifact (#2427)
+
+## v3.3.0 - _January 6, 2020_
+
+    * Add updated `DevUtils` artifact. (#2402)
+
+## v3.2.0 - _December 17, 2019_
+
+    * Add `IERC20BridgeSampler` artifact. (#2353)
+
 ## v3.1.0 - _December 9, 2019_
 
     * Add `IAssetData` artifact (#2373)

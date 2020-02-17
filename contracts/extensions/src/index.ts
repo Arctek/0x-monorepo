@@ -1,5 +1,5 @@
 export { artifacts } from './artifacts';
-export { BalanceThresholdFilterContract, DutchAuctionContract, OrderMatcherContract } from './wrappers';
+export { LibAssetDataTransferRevertErrors, MixinWethUtilsRevertErrors } from '@0x/utils';
 export {
     ContractArtifact,
     ContractChains,
@@ -15,6 +15,7 @@ export {
     OutputField,
     ParamDescription,
     EvmBytecodeOutput,
+    EvmBytecodeOutputLinkReferences,
     AbiDefinition,
     FunctionAbi,
     EventAbi,

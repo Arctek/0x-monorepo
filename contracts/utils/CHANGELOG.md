@@ -5,6 +5,36 @@ Edit the package's CHANGELOG.json file only.
 
 CHANGELOG
 
+## v4.3.1 - _February 15, 2020_
+
+    * Dependencies updated
+
+## v4.3.0 - _February 8, 2020_
+
+    * Update Eth2Dai addresses in `DeploymentConstants` (#2474)
+
+## v4.2.1 - _February 6, 2020_
+
+    * Dependencies updated
+
+## v4.2.0 - _February 4, 2020_
+
+    * Update kovan addresses in `DeploymentConstants` (#2459)
+    * Export `EvmBytecodeOutputLinkReferences` type. (#2462)
+
+## v4.1.0 - _January 22, 2020_
+
+    * Replaced ethers with 0x ABI Encoder for decoding logs. Fixes decoding for arrays/objects. (#2443)
+
+## v4.0.3 - _January 6, 2020_
+
+    * Dependencies updated
+
+## v4.0.2 - _December 17, 2019_
+
+    * Add `DEV_UTILS_ADDRESS` and `KYBER_ETH_ADDRESS` to `DeploymentConstants`. (#2395)
+    * Add `DydxBridge` to `DeploymentConstants`. (#2365)
+
 ## v4.0.1 - _December 9, 2019_
 
     * Dependencies updated
