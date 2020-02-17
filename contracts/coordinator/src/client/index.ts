@@ -28,7 +28,7 @@ import { decorators } from './utils/decorators';
 
 export { CoordinatorServerErrorMsg, CoordinatorServerCancellationResponse };
 
-export declare enum CoordinatorFillFunctionStep {
+export enum CoordinatorFillFunctionStep {
     RequestTakerSignature = "REQUEST_TAKER_SIGNATURE",
     RequestCoordinatorSignature = "REQUEST_COORDINATOR_SIGNATURE",
     RequestSubmitTransaction = "REQUEST_SUBMIT_TRANSACTION"
@@ -42,7 +42,6 @@ const DEFAULT_TX_DATA = {
 
 // tx expiration time will be set to (now + default_approval - time_buffer)
 const DEFAULT_APPROVAL_EXPIRATION_TIME_SECONDS = 90;
-const DEFAULT_EXPIRATION_TIME_BUFFER_SECONDS = 30;
 
 /**
  * This class includes all the functionality related to filling or cancelling orders through
