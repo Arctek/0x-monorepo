@@ -66,6 +66,7 @@ export enum ExtensionContractType {
     None = 'NONE',
     Forwarder = 'FORWARDER',
     ExchangeProxy = 'EXCHANGE_PROXY',
+    Coordinator = "COORDINATOR",
 }
 
 /**
@@ -75,6 +76,13 @@ export enum ExtensionContractType {
 export interface ForwarderSmartContractParamsBase {
     feePercentage: BigNumber;
     feeRecipient: string;
+}
+export interface CoordinatorMarketBuySmartContractParams {
+    transaction: ZeroExTransaction;
+    txOrigin: string;
+    transactionSignature: string;
+    approvalExpirationTimeSeconds: number[];
+    approvalSignatures: string[];
 }
 
 /**

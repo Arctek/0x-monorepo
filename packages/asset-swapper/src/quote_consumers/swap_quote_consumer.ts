@@ -20,11 +20,13 @@ import { swapQuoteConsumerUtils } from '../utils/swap_quote_consumer_utils';
 import { ExchangeProxySwapQuoteConsumer } from './exchange_proxy_swap_quote_consumer';
 import { ExchangeSwapQuoteConsumer } from './exchange_swap_quote_consumer';
 import { ForwarderSwapQuoteConsumer } from './forwarder_swap_quote_consumer';
+import { CoordinatorSwapQuoteConsumer } from './coordinator_swap_quote_consumer';
 
 export class SwapQuoteConsumer implements SwapQuoteConsumerBase {
     public readonly provider: ZeroExProvider;
     public readonly chainId: number;
 
+    private readonly _coordinatorConsumer: CoordinatorSwapQuoteConsumer;
     private readonly _exchangeConsumer: ExchangeSwapQuoteConsumer;
     private readonly _forwarderConsumer: ForwarderSwapQuoteConsumer;
     private readonly _contractAddresses: ContractAddresses;
@@ -52,6 +54,7 @@ export class SwapQuoteConsumer implements SwapQuoteConsumerBase {
             this._contractAddresses,
             options,
         );
+        this._coordinatorConsumer = new CoordinatorSwapQuoteConsumer(supportedProvider, this._contractAddresses, options);
     }
 
     /**
@@ -100,13 +103,12 @@ export class SwapQuoteConsumer implements SwapQuoteConsumerBase {
     }
 
     private async _getConsumerForSwapQuoteAsync(opts: Partial<SwapQuoteGetOutputOpts>): Promise<SwapQuoteConsumerBase> {
-        switch (opts.useExtensionContract) {
-            case ExtensionContractType.Forwarder:
-                return this._forwarderConsumer;
-            case ExtensionContractType.ExchangeProxy:
-                return this._exchangeProxyConsumer;
-            default:
-                return this._exchangeConsumer;
+        if (opts.useExtensionContract === ExtensionContractType.Coordinator) {
+            return this._coordinatorConsumer;
         }
+        else if (opts.useExtensionContract === ExtensionContractType.Forwarder) {
+            return this._forwarderConsumer;
+        }
+        return this._exchangeConsumer;
     }
 }

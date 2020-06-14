@@ -75,7 +75,12 @@ export const swapQuoteConsumerUtils = {
         opts: Partial<GetExtensionContractTypeOpts>,
     ): Promise<ExtensionContractType> {
         const wethAssetData = assetDataUtils.encodeERC20AssetData(contractAddresses.etherToken);
-        if (swapQuoteConsumerUtils.isValidForwarderSwapQuote(quote, wethAssetData)) {
+        const isCoordinated: boolean = quote.orders.reduce((coordinated: boolean, order) => 
+            coordinated || order.senderAddress === contractAddresses.coordinator, false
+        );
+        if (isCoordinated) {
+            return ExtensionContractType.Coordinator;
+        } else if (swapQuoteConsumerUtils.isValidForwarderSwapQuote(quote, wethAssetData)) {
             if (opts.takerAddress !== undefined) {
                 assert.isETHAddressHex('takerAddress', opts.takerAddress);
             }
