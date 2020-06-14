@@ -184,6 +184,33 @@ export class IERC20BridgeSamplerContract extends BaseContract {
                 constant: true,
                 inputs: [
                     {
+                        name: 'registryAddress',
+                        type: 'address',
+                    },
+                    {
+                        name: 'takerToken',
+                        type: 'address',
+                    },
+                    {
+                        name: 'makerToken',
+                        type: 'address',
+                    },
+                ],
+                name: 'getLiquidityProviderFromRegistry',
+                outputs: [
+                    {
+                        name: 'providerAddress',
+                        type: 'address',
+                    },
+                ],
+                payable: false,
+                stateMutability: 'view',
+                type: 'function',
+            },
+            {
+                constant: true,
+                inputs: [
+                    {
                         name: 'orders',
                         type: 'tuple[]',
                         components: [
@@ -346,6 +373,37 @@ export class IERC20BridgeSamplerContract extends BaseContract {
                 constant: true,
                 inputs: [
                     {
+                        name: 'curveAddress',
+                        type: 'address',
+                    },
+                    {
+                        name: 'fromTokenIdx',
+                        type: 'int128',
+                    },
+                    {
+                        name: 'toTokenIdx',
+                        type: 'int128',
+                    },
+                    {
+                        name: 'makerTokenAmounts',
+                        type: 'uint256[]',
+                    },
+                ],
+                name: 'sampleBuysFromCurve',
+                outputs: [
+                    {
+                        name: 'takerTokenAmounts',
+                        type: 'uint256[]',
+                    },
+                ],
+                payable: false,
+                stateMutability: 'view',
+                type: 'function',
+            },
+            {
+                constant: true,
+                inputs: [
+                    {
                         name: 'takerToken',
                         type: 'address',
                     },
@@ -384,8 +442,117 @@ export class IERC20BridgeSamplerContract extends BaseContract {
                         name: 'makerTokenAmounts',
                         type: 'uint256[]',
                     },
+                    {
+                        name: 'opts',
+                        type: 'tuple',
+                        components: [
+                            {
+                                name: 'targetSlippageBps',
+                                type: 'uint256',
+                            },
+                            {
+                                name: 'maxIterations',
+                                type: 'uint256',
+                            },
+                        ],
+                    },
+                ],
+                name: 'sampleBuysFromKyberNetwork',
+                outputs: [
+                    {
+                        name: 'takerTokenAmounts',
+                        type: 'uint256[]',
+                    },
+                ],
+                payable: false,
+                stateMutability: 'view',
+                type: 'function',
+            },
+            {
+                constant: true,
+                inputs: [
+                    {
+                        name: 'registryAddress',
+                        type: 'address',
+                    },
+                    {
+                        name: 'takerToken',
+                        type: 'address',
+                    },
+                    {
+                        name: 'makerToken',
+                        type: 'address',
+                    },
+                    {
+                        name: 'makerTokenAmounts',
+                        type: 'uint256[]',
+                    },
+                    {
+                        name: 'opts',
+                        type: 'tuple',
+                        components: [
+                            {
+                                name: 'targetSlippageBps',
+                                type: 'uint256',
+                            },
+                            {
+                                name: 'maxIterations',
+                                type: 'uint256',
+                            },
+                        ],
+                    },
+                ],
+                name: 'sampleBuysFromLiquidityProviderRegistry',
+                outputs: [
+                    {
+                        name: 'takerTokenAmounts',
+                        type: 'uint256[]',
+                    },
+                ],
+                payable: false,
+                stateMutability: 'view',
+                type: 'function',
+            },
+            {
+                constant: true,
+                inputs: [
+                    {
+                        name: 'takerToken',
+                        type: 'address',
+                    },
+                    {
+                        name: 'makerToken',
+                        type: 'address',
+                    },
+                    {
+                        name: 'makerTokenAmounts',
+                        type: 'uint256[]',
+                    },
                 ],
                 name: 'sampleBuysFromUniswap',
+                outputs: [
+                    {
+                        name: 'takerTokenAmounts',
+                        type: 'uint256[]',
+                    },
+                ],
+                payable: false,
+                stateMutability: 'view',
+                type: 'function',
+            },
+            {
+                constant: true,
+                inputs: [
+                    {
+                        name: 'path',
+                        type: 'address[]',
+                    },
+                    {
+                        name: 'makerTokenAmounts',
+                        type: 'uint256[]',
+                    },
+                ],
+                name: 'sampleBuysFromUniswapV2',
                 outputs: [
                     {
                         name: 'takerTokenAmounts',
@@ -485,6 +652,72 @@ export class IERC20BridgeSamplerContract extends BaseContract {
                 constant: true,
                 inputs: [
                     {
+                        name: 'registryAddress',
+                        type: 'address',
+                    },
+                    {
+                        name: 'takerToken',
+                        type: 'address',
+                    },
+                    {
+                        name: 'makerToken',
+                        type: 'address',
+                    },
+                    {
+                        name: 'takerTokenAmounts',
+                        type: 'uint256[]',
+                    },
+                ],
+                name: 'sampleSellsFromLiquidityProviderRegistry',
+                outputs: [
+                    {
+                        name: 'makerTokenAmounts',
+                        type: 'uint256[]',
+                    },
+                ],
+                payable: false,
+                stateMutability: 'view',
+                type: 'function',
+            },
+            {
+                constant: true,
+                inputs: [
+                    {
+                        name: 'multibridge',
+                        type: 'address',
+                    },
+                    {
+                        name: 'takerToken',
+                        type: 'address',
+                    },
+                    {
+                        name: 'intermediateToken',
+                        type: 'address',
+                    },
+                    {
+                        name: 'makerToken',
+                        type: 'address',
+                    },
+                    {
+                        name: 'takerTokenAmounts',
+                        type: 'uint256[]',
+                    },
+                ],
+                name: 'sampleSellsFromMultiBridge',
+                outputs: [
+                    {
+                        name: 'makerTokenAmounts',
+                        type: 'uint256[]',
+                    },
+                ],
+                payable: false,
+                stateMutability: 'view',
+                type: 'function',
+            },
+            {
+                constant: true,
+                inputs: [
+                    {
                         name: 'takerToken',
                         type: 'address',
                     },
@@ -498,6 +731,29 @@ export class IERC20BridgeSamplerContract extends BaseContract {
                     },
                 ],
                 name: 'sampleSellsFromUniswap',
+                outputs: [
+                    {
+                        name: 'makerTokenAmounts',
+                        type: 'uint256[]',
+                    },
+                ],
+                payable: false,
+                stateMutability: 'view',
+                type: 'function',
+            },
+            {
+                constant: true,
+                inputs: [
+                    {
+                        name: 'path',
+                        type: 'address[]',
+                    },
+                    {
+                        name: 'takerTokenAmounts',
+                        type: 'uint256[]',
+                    },
+                ],
+                name: 'sampleSellsFromUniswapV2',
                 outputs: [
                     {
                         name: 'makerTokenAmounts',
@@ -614,6 +870,45 @@ export class IERC20BridgeSamplerContract extends BaseContract {
         };
     }
     /**
+     * Returns the address of a liquidity provider for the given market
+     * (takerToken, makerToken), from a registry of liquidity providers.
+     * Returns address(0) if no such provider exists in the registry.
+     * @param takerToken Taker asset managed by liquidity provider.
+     * @param makerToken Maker asset managed by liquidity provider.
+     * @returns providerAddress Address of the liquidity provider.
+     */
+    public getLiquidityProviderFromRegistry(
+        registryAddress: string,
+        takerToken: string,
+        makerToken: string,
+    ): ContractFunctionObj<string> {
+        const self = (this as any) as IERC20BridgeSamplerContract;
+        assert.isString('registryAddress', registryAddress);
+        assert.isString('takerToken', takerToken);
+        assert.isString('makerToken', makerToken);
+        const functionSignature = 'getLiquidityProviderFromRegistry(address,address,address)';
+
+        return {
+            async callAsync(callData: Partial<CallData> = {}, defaultBlock?: BlockParam): Promise<string> {
+                BaseContract._assertCallParams(callData, defaultBlock);
+                const rawCallResult = await self._performCallAsync(
+                    { ...callData, data: this.getABIEncodedTransactionData() },
+                    defaultBlock,
+                );
+                const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
+                return abiEncoder.strictDecodeReturnValue<string>(rawCallResult);
+            },
+            getABIEncodedTransactionData(): string {
+                return self._strictEncodeArguments(functionSignature, [
+                    registryAddress.toLowerCase(),
+                    takerToken.toLowerCase(),
+                    makerToken.toLowerCase(),
+                ]);
+            },
+        };
+    }
+    /**
      * Queries the fillable maker asset amounts of native orders.
      * @param orders Native orders to query.
      * @param orderSignatures Signatures for each respective order in `orders`.
@@ -708,9 +1003,52 @@ export class IERC20BridgeSamplerContract extends BaseContract {
         };
     }
     /**
+     * Sample buy quotes from Curve.
+     * @param curveAddress Address of the Curve contract.
+     * @param fromTokenIdx Index of the taker token (what to sell).
+     * @param toTokenIdx Index of the maker token (what to buy).
+     * @param makerTokenAmounts Maker token buy amount for each sample.
+     * @returns takerTokenAmounts Taker amounts sold at each maker token         amount.
+     */
+    public sampleBuysFromCurve(
+        curveAddress: string,
+        fromTokenIdx: BigNumber,
+        toTokenIdx: BigNumber,
+        makerTokenAmounts: BigNumber[],
+    ): ContractFunctionObj<BigNumber[]> {
+        const self = (this as any) as IERC20BridgeSamplerContract;
+        assert.isString('curveAddress', curveAddress);
+        assert.isBigNumber('fromTokenIdx', fromTokenIdx);
+        assert.isBigNumber('toTokenIdx', toTokenIdx);
+        assert.isArray('makerTokenAmounts', makerTokenAmounts);
+        const functionSignature = 'sampleBuysFromCurve(address,int128,int128,uint256[])';
+
+        return {
+            async callAsync(callData: Partial<CallData> = {}, defaultBlock?: BlockParam): Promise<BigNumber[]> {
+                BaseContract._assertCallParams(callData, defaultBlock);
+                const rawCallResult = await self._performCallAsync(
+                    { ...callData, data: this.getABIEncodedTransactionData() },
+                    defaultBlock,
+                );
+                const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
+                return abiEncoder.strictDecodeReturnValue<BigNumber[]>(rawCallResult);
+            },
+            getABIEncodedTransactionData(): string {
+                return self._strictEncodeArguments(functionSignature, [
+                    curveAddress.toLowerCase(),
+                    fromTokenIdx,
+                    toTokenIdx,
+                    makerTokenAmounts,
+                ]);
+            },
+        };
+    }
+    /**
      * Sample buy quotes from Eth2Dai/Oasis.
      * @param takerToken Address of the taker token (what to sell).
      * @param makerToken Address of the maker token (what to buy).
+     * @param makerTokenAmounts Maker token buy amount for each sample.
      * @returns takerTokenAmounts Taker amounts sold at each maker token         amount.
      */
     public sampleBuysFromEth2Dai(
@@ -745,10 +1083,99 @@ export class IERC20BridgeSamplerContract extends BaseContract {
         };
     }
     /**
+     * Sample buy quotes from Kyber.
+     * @param takerToken Address of the taker token (what to sell).
+     * @param makerToken Address of the maker token (what to buy).
+     * @param makerTokenAmounts Maker token buy amount for each sample.
+     * @param opts `FakeBuyOptions` specifying target slippage and max iterations.
+     * @returns takerTokenAmounts Taker amounts sold at each maker token         amount.
+     */
+    public sampleBuysFromKyberNetwork(
+        takerToken: string,
+        makerToken: string,
+        makerTokenAmounts: BigNumber[],
+        opts: { targetSlippageBps: BigNumber; maxIterations: BigNumber },
+    ): ContractFunctionObj<BigNumber[]> {
+        const self = (this as any) as IERC20BridgeSamplerContract;
+        assert.isString('takerToken', takerToken);
+        assert.isString('makerToken', makerToken);
+        assert.isArray('makerTokenAmounts', makerTokenAmounts);
+
+        const functionSignature = 'sampleBuysFromKyberNetwork(address,address,uint256[],(uint256,uint256))';
+
+        return {
+            async callAsync(callData: Partial<CallData> = {}, defaultBlock?: BlockParam): Promise<BigNumber[]> {
+                BaseContract._assertCallParams(callData, defaultBlock);
+                const rawCallResult = await self._performCallAsync(
+                    { ...callData, data: this.getABIEncodedTransactionData() },
+                    defaultBlock,
+                );
+                const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
+                return abiEncoder.strictDecodeReturnValue<BigNumber[]>(rawCallResult);
+            },
+            getABIEncodedTransactionData(): string {
+                return self._strictEncodeArguments(functionSignature, [
+                    takerToken.toLowerCase(),
+                    makerToken.toLowerCase(),
+                    makerTokenAmounts,
+                    opts,
+                ]);
+            },
+        };
+    }
+    /**
+     * Sample buy quotes from an arbitrary on-chain liquidity provider.
+     * @param registryAddress Address of the liquidity provider registry contract.
+     * @param takerToken Address of the taker token (what to sell).
+     * @param makerToken Address of the maker token (what to buy).
+     * @param makerTokenAmounts Maker token buy amount for each sample.
+     * @param opts `FakeBuyOptions` specifying target slippage and max iterations.
+     * @returns takerTokenAmounts Taker amounts sold at each maker token         amount.
+     */
+    public sampleBuysFromLiquidityProviderRegistry(
+        registryAddress: string,
+        takerToken: string,
+        makerToken: string,
+        makerTokenAmounts: BigNumber[],
+        opts: { targetSlippageBps: BigNumber; maxIterations: BigNumber },
+    ): ContractFunctionObj<BigNumber[]> {
+        const self = (this as any) as IERC20BridgeSamplerContract;
+        assert.isString('registryAddress', registryAddress);
+        assert.isString('takerToken', takerToken);
+        assert.isString('makerToken', makerToken);
+        assert.isArray('makerTokenAmounts', makerTokenAmounts);
+
+        const functionSignature =
+            'sampleBuysFromLiquidityProviderRegistry(address,address,address,uint256[],(uint256,uint256))';
+
+        return {
+            async callAsync(callData: Partial<CallData> = {}, defaultBlock?: BlockParam): Promise<BigNumber[]> {
+                BaseContract._assertCallParams(callData, defaultBlock);
+                const rawCallResult = await self._performCallAsync(
+                    { ...callData, data: this.getABIEncodedTransactionData() },
+                    defaultBlock,
+                );
+                const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
+                return abiEncoder.strictDecodeReturnValue<BigNumber[]>(rawCallResult);
+            },
+            getABIEncodedTransactionData(): string {
+                return self._strictEncodeArguments(functionSignature, [
+                    registryAddress.toLowerCase(),
+                    takerToken.toLowerCase(),
+                    makerToken.toLowerCase(),
+                    makerTokenAmounts,
+                    opts,
+                ]);
+            },
+        };
+    }
+    /**
      * Sample buy quotes from Uniswap.
      * @param takerToken Address of the taker token (what to sell).
      * @param makerToken Address of the maker token (what to buy).
-     * @param makerTokenAmounts Maker token sell amount for each sample.
+     * @param makerTokenAmounts Maker token buy amount for each sample.
      * @returns takerTokenAmounts Taker amounts sold at each maker token         amount.
      */
     public sampleBuysFromUniswap(
@@ -779,6 +1206,34 @@ export class IERC20BridgeSamplerContract extends BaseContract {
                     makerToken.toLowerCase(),
                     makerTokenAmounts,
                 ]);
+            },
+        };
+    }
+    /**
+     * Sample buy quotes from UniswapV2.
+     * @param path Token route.
+     * @param makerTokenAmounts Maker token buy amount for each sample.
+     * @returns takerTokenAmounts Taker amounts sold at each maker token         amount.
+     */
+    public sampleBuysFromUniswapV2(path: string[], makerTokenAmounts: BigNumber[]): ContractFunctionObj<BigNumber[]> {
+        const self = (this as any) as IERC20BridgeSamplerContract;
+        assert.isArray('path', path);
+        assert.isArray('makerTokenAmounts', makerTokenAmounts);
+        const functionSignature = 'sampleBuysFromUniswapV2(address[],uint256[])';
+
+        return {
+            async callAsync(callData: Partial<CallData> = {}, defaultBlock?: BlockParam): Promise<BigNumber[]> {
+                BaseContract._assertCallParams(callData, defaultBlock);
+                const rawCallResult = await self._performCallAsync(
+                    { ...callData, data: this.getABIEncodedTransactionData() },
+                    defaultBlock,
+                );
+                const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
+                return abiEncoder.strictDecodeReturnValue<BigNumber[]>(rawCallResult);
+            },
+            getABIEncodedTransactionData(): string {
+                return self._strictEncodeArguments(functionSignature, [path, makerTokenAmounts]);
             },
         };
     }
@@ -901,6 +1356,95 @@ export class IERC20BridgeSamplerContract extends BaseContract {
         };
     }
     /**
+     * Sample sell quotes from an arbitrary on-chain liquidity provider.
+     * @param registryAddress Address of the liquidity provider registry contract.
+     * @param takerToken Address of the taker token (what to sell).
+     * @param makerToken Address of the maker token (what to buy).
+     * @param takerTokenAmounts Taker token sell amount for each sample.
+     * @returns makerTokenAmounts Maker amounts bought at each taker token         amount.
+     */
+    public sampleSellsFromLiquidityProviderRegistry(
+        registryAddress: string,
+        takerToken: string,
+        makerToken: string,
+        takerTokenAmounts: BigNumber[],
+    ): ContractFunctionObj<BigNumber[]> {
+        const self = (this as any) as IERC20BridgeSamplerContract;
+        assert.isString('registryAddress', registryAddress);
+        assert.isString('takerToken', takerToken);
+        assert.isString('makerToken', makerToken);
+        assert.isArray('takerTokenAmounts', takerTokenAmounts);
+        const functionSignature = 'sampleSellsFromLiquidityProviderRegistry(address,address,address,uint256[])';
+
+        return {
+            async callAsync(callData: Partial<CallData> = {}, defaultBlock?: BlockParam): Promise<BigNumber[]> {
+                BaseContract._assertCallParams(callData, defaultBlock);
+                const rawCallResult = await self._performCallAsync(
+                    { ...callData, data: this.getABIEncodedTransactionData() },
+                    defaultBlock,
+                );
+                const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
+                return abiEncoder.strictDecodeReturnValue<BigNumber[]>(rawCallResult);
+            },
+            getABIEncodedTransactionData(): string {
+                return self._strictEncodeArguments(functionSignature, [
+                    registryAddress.toLowerCase(),
+                    takerToken.toLowerCase(),
+                    makerToken.toLowerCase(),
+                    takerTokenAmounts,
+                ]);
+            },
+        };
+    }
+    /**
+     * Sample sell quotes from MultiBridge.
+     * @param multibridge Address of the MultiBridge contract.
+     * @param takerToken Address of the taker token (what to sell).
+     * @param intermediateToken The address of the intermediate token to        use
+     *     in an indirect route.
+     * @param makerToken Address of the maker token (what to buy).
+     * @param takerTokenAmounts Taker token sell amount for each sample.
+     * @returns makerTokenAmounts Maker amounts bought at each taker token         amount.
+     */
+    public sampleSellsFromMultiBridge(
+        multibridge: string,
+        takerToken: string,
+        intermediateToken: string,
+        makerToken: string,
+        takerTokenAmounts: BigNumber[],
+    ): ContractFunctionObj<BigNumber[]> {
+        const self = (this as any) as IERC20BridgeSamplerContract;
+        assert.isString('multibridge', multibridge);
+        assert.isString('takerToken', takerToken);
+        assert.isString('intermediateToken', intermediateToken);
+        assert.isString('makerToken', makerToken);
+        assert.isArray('takerTokenAmounts', takerTokenAmounts);
+        const functionSignature = 'sampleSellsFromMultiBridge(address,address,address,address,uint256[])';
+
+        return {
+            async callAsync(callData: Partial<CallData> = {}, defaultBlock?: BlockParam): Promise<BigNumber[]> {
+                BaseContract._assertCallParams(callData, defaultBlock);
+                const rawCallResult = await self._performCallAsync(
+                    { ...callData, data: this.getABIEncodedTransactionData() },
+                    defaultBlock,
+                );
+                const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
+                return abiEncoder.strictDecodeReturnValue<BigNumber[]>(rawCallResult);
+            },
+            getABIEncodedTransactionData(): string {
+                return self._strictEncodeArguments(functionSignature, [
+                    multibridge.toLowerCase(),
+                    takerToken.toLowerCase(),
+                    intermediateToken.toLowerCase(),
+                    makerToken.toLowerCase(),
+                    takerTokenAmounts,
+                ]);
+            },
+        };
+    }
+    /**
      * Sample sell quotes from Uniswap.
      * @param takerToken Address of the taker token (what to sell).
      * @param makerToken Address of the maker token (what to buy).
@@ -935,6 +1479,34 @@ export class IERC20BridgeSamplerContract extends BaseContract {
                     makerToken.toLowerCase(),
                     takerTokenAmounts,
                 ]);
+            },
+        };
+    }
+    /**
+     * Sample sell quotes from UniswapV2.
+     * @param path Token route.
+     * @param takerTokenAmounts Taker token sell amount for each sample.
+     * @returns makerTokenAmounts Maker amounts bought at each taker token         amount.
+     */
+    public sampleSellsFromUniswapV2(path: string[], takerTokenAmounts: BigNumber[]): ContractFunctionObj<BigNumber[]> {
+        const self = (this as any) as IERC20BridgeSamplerContract;
+        assert.isArray('path', path);
+        assert.isArray('takerTokenAmounts', takerTokenAmounts);
+        const functionSignature = 'sampleSellsFromUniswapV2(address[],uint256[])';
+
+        return {
+            async callAsync(callData: Partial<CallData> = {}, defaultBlock?: BlockParam): Promise<BigNumber[]> {
+                BaseContract._assertCallParams(callData, defaultBlock);
+                const rawCallResult = await self._performCallAsync(
+                    { ...callData, data: this.getABIEncodedTransactionData() },
+                    defaultBlock,
+                );
+                const abiEncoder = self._lookupAbiEncoder(functionSignature);
+                BaseContract._throwIfUnexpectedEmptyCallResult(rawCallResult, abiEncoder);
+                return abiEncoder.strictDecodeReturnValue<BigNumber[]>(rawCallResult);
+            },
+            getABIEncodedTransactionData(): string {
+                return self._strictEncodeArguments(functionSignature, [path, takerTokenAmounts]);
             },
         };
     }

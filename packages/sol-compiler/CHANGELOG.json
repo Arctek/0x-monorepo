@@ -1,5 +1,31 @@
 [
     {
+        "version": "4.1.0",
+        "changes": [
+            {
+                "note": "Refactor + add solidity 0.6 support",
+                "pr": 2532
+            },
+            {
+                "note": "Filter `receive` functions from 0.6 ABIs",
+                "pr": 2540
+            },
+            {
+                "note": "Fix `CompilerOptions` schema",
+                "pr": 2591
+            }
+        ]
+    },
+    {
+        "timestamp": 1582623685,
+        "version": "4.0.8",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
         "timestamp": 1581204851,
         "version": "4.0.7",
         "changes": [

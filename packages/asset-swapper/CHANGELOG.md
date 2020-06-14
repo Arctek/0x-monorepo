@@ -5,6 +5,26 @@ Edit the package's CHANGELOG.json file only.
 
 CHANGELOG
 
+## v4.4.0 - _March 3, 2020_
+
+    * Add support for ERC721 assets (#2491)
+    * Add destroy for gas heartbeat (#2492)
+    * Added `BUSD` Curve (#2506)
+    * Updated `Compound` Curve address (#2506)
+
+## v4.3.2 - _February 27, 2020_
+
+    * Fix order native pruning by fill amount (#2500)
+
+## v4.3.1 - _February 26, 2020_
+
+    * Dependencies updated
+
+## v4.3.0 - _February 25, 2020_
+
+    * Add `fees` to `GetMarketOrdersOpts` (#2481)
+    * Incorporate fees into fill optimization (#2481)
+
 ## v4.2.0 - _February 15, 2020_
 
     * Use `batchCall()` version of the `ERC20BridgeSampler` contract (#2477)

@@ -24,6 +24,11 @@ import "@0x/contracts-exchange-libs/contracts/src/LibOrder.sol";
 
 interface IERC20BridgeSampler {
 
+    struct FakeBuyOptions {
+        uint256 targetSlippageBps;
+        uint256 maxIterations;
+    }
+
     /// @dev Call multiple public functions on this contract in a single transaction.
     /// @param callDatas ABI-encoded call data for each function call.
     /// @return callResults ABI-encoded results data for each call.
@@ -73,6 +78,23 @@ interface IERC20BridgeSampler {
         view
         returns (uint256[] memory makerTokenAmounts);
 
+    /// @dev Sample buy quotes from Kyber.
+    /// @param takerToken Address of the taker token (what to sell).
+    /// @param makerToken Address of the maker token (what to buy).
+    /// @param makerTokenAmounts Maker token buy amount for each sample.
+    /// @param opts `FakeBuyOptions` specifying target slippage and max iterations.
+    /// @return takerTokenAmounts Taker amounts sold at each maker token
+    ///         amount.
+    function sampleBuysFromKyberNetwork(
+        address takerToken,
+        address makerToken,
+        uint256[] calldata makerTokenAmounts,
+        FakeBuyOptions calldata opts
+    )
+        external
+        view
+        returns (uint256[] memory takerTokenAmounts);
+
     /// @dev Sample sell quotes from Eth2Dai/Oasis.
     /// @param takerToken Address of the taker token (what to sell).
     /// @param makerToken Address of the maker token (what to buy).
@@ -106,7 +128,7 @@ interface IERC20BridgeSampler {
     /// @dev Sample buy quotes from Uniswap.
     /// @param takerToken Address of the taker token (what to sell).
     /// @param makerToken Address of the maker token (what to buy).
-    /// @param makerTokenAmounts Maker token sell amount for each sample.
+    /// @param makerTokenAmounts Maker token buy amount for each sample.
     /// @return takerTokenAmounts Taker amounts sold at each maker token
     ///         amount.
     function sampleBuysFromUniswap(
@@ -121,7 +143,7 @@ interface IERC20BridgeSampler {
     /// @dev Sample buy quotes from Eth2Dai/Oasis.
     /// @param takerToken Address of the taker token (what to sell).
     /// @param makerToken Address of the maker token (what to buy).
-    /// @param takerTokenAmounts Maker token sell amount for each sample.
+    /// @param makerTokenAmounts Maker token buy amount for each sample.
     /// @return takerTokenAmounts Taker amounts sold at each maker token
     ///         amount.
     function sampleBuysFromEth2Dai(
@@ -149,4 +171,119 @@ interface IERC20BridgeSampler {
         external
         view
         returns (uint256[] memory makerTokenAmounts);
+
+    /// @dev Sample buy quotes from Curve.
+    /// @param curveAddress Address of the Curve contract.
+    /// @param fromTokenIdx Index of the taker token (what to sell).
+    /// @param toTokenIdx Index of the maker token (what to buy).
+    /// @param makerTokenAmounts Maker token buy amount for each sample.
+    /// @return takerTokenAmounts Taker amounts sold at each maker token
+    ///         amount.
+    function sampleBuysFromCurve(
+        address curveAddress,
+        int128 fromTokenIdx,
+        int128 toTokenIdx,
+        uint256[] calldata makerTokenAmounts
+    )
+        external
+        view
+        returns (uint256[] memory takerTokenAmounts);
+
+    /// @dev Sample sell quotes from an arbitrary on-chain liquidity provider.
+    /// @param registryAddress Address of the liquidity provider registry contract.
+    /// @param takerToken Address of the taker token (what to sell).
+    /// @param makerToken Address of the maker token (what to buy).
+    /// @param takerTokenAmounts Taker token sell amount for each sample.
+    /// @return makerTokenAmounts Maker amounts bought at each taker token
+    ///         amount.
+    function sampleSellsFromLiquidityProviderRegistry(
+        address registryAddress,
+        address takerToken,
+        address makerToken,
+        uint256[] calldata takerTokenAmounts
+    )
+        external
+        view
+        returns (uint256[] memory makerTokenAmounts);
+
+    /// @dev Sample sell quotes from MultiBridge.
+    /// @param multibridge Address of the MultiBridge contract.
+    /// @param takerToken Address of the taker token (what to sell).
+    /// @param intermediateToken The address of the intermediate token to
+    ///        use in an indirect route.
+    /// @param makerToken Address of the maker token (what to buy).
+    /// @param takerTokenAmounts Taker token sell amount for each sample.
+    /// @return makerTokenAmounts Maker amounts bought at each taker token
+    ///         amount.
+    function sampleSellsFromMultiBridge(
+        address multibridge,
+        address takerToken,
+        address intermediateToken,
+        address makerToken,
+        uint256[] calldata takerTokenAmounts
+    )
+        external
+        view
+        returns (uint256[] memory makerTokenAmounts);
+
+    /// @dev Sample buy quotes from an arbitrary on-chain liquidity provider.
+    /// @param registryAddress Address of the liquidity provider registry contract.
+    /// @param takerToken Address of the taker token (what to sell).
+    /// @param makerToken Address of the maker token (what to buy).
+    /// @param makerTokenAmounts Maker token buy amount for each sample.
+    /// @param opts `FakeBuyOptions` specifying target slippage and max iterations.
+    /// @return takerTokenAmounts Taker amounts sold at each maker token
+    ///         amount.
+    function sampleBuysFromLiquidityProviderRegistry(
+        address registryAddress,
+        address takerToken,
+        address makerToken,
+        uint256[] calldata makerTokenAmounts,
+        FakeBuyOptions calldata opts
+
+    )
+        external
+        view
+        returns (uint256[] memory takerTokenAmounts);
+
+    /// @dev Returns the address of a liquidity provider for the given market
+    ///      (takerToken, makerToken), from a registry of liquidity providers.
+    ///      Returns address(0) if no such provider exists in the registry.
+    /// @param takerToken Taker asset managed by liquidity provider.
+    /// @param makerToken Maker asset managed by liquidity provider.
+    /// @return providerAddress Address of the liquidity provider.
+    function getLiquidityProviderFromRegistry(
+        address registryAddress,
+        address takerToken,
+        address makerToken
+    )
+        external
+        view
+        returns (address providerAddress);
+
+    /// @dev Sample sell quotes from UniswapV2.
+    /// @param path Token route.
+    /// @param takerTokenAmounts Taker token sell amount for each sample.
+    /// @return makerTokenAmounts Maker amounts bought at each taker token
+    ///         amount.
+    function sampleSellsFromUniswapV2(
+        address[] calldata path,
+        uint256[] calldata takerTokenAmounts
+    )
+        external
+        view
+        returns (uint256[] memory makerTokenAmounts);
+
+    /// @dev Sample buy quotes from UniswapV2.
+    /// @param path Token route.
+    /// @param makerTokenAmounts Maker token buy amount for each sample.
+    /// @return takerTokenAmounts Taker amounts sold at each maker token
+    ///         amount.
+    function sampleBuysFromUniswapV2(
+        address[] calldata path,
+        uint256[] calldata makerTokenAmounts
+    )
+        external
+        view
+        returns (uint256[] memory takerTokenAmounts);
 }

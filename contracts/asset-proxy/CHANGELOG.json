@@ -1,5 +1,74 @@
 [
     {
+        "version": "3.3.0",
+        "changes": [
+            {
+                "note": "Use `LibERC20Token.approveIfBelow()` in DEX bridges for for approvals.",
+                "pr": 2512
+            },
+            {
+                "note": "Emit `ERC20BridgeTransfer` events in bridges.",
+                "pr": 2512
+            },
+            {
+                "note": "Change names of `ERC20BridgeTransfer` args to be less ambiguous.",
+                "pr": 2524
+            },
+            {
+                "note": "Added `MixinGasToken` allowing Gas Tokens to be freed",
+                "pr": 2523
+            },
+            {
+                "note": "Add `DexForwaderBridge` bridge contract.",
+                "pr": 2525
+            },
+            {
+                "note": "Add `UniswapV2Bridge` bridge contract.",
+                "pr": 2590
+            },
+            {
+                "note": "Add Gas Token freeing to `DexForwarderBridge` contract.",
+                "pr": 2536
+            }
+        ]
+    },
+    {
+        "timestamp": 1583220306,
+        "version": "3.2.5",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1582837861,
+        "version": "3.2.4",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1582677073,
+        "version": "3.2.3",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1582623685,
+        "version": "3.2.2",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
         "timestamp": 1581748629,
         "version": "3.2.1",
         "changes": [
@@ -12,6 +81,14 @@
         "version": "3.2.0",
         "changes": [
             {
+                "note": "Add more types and functions to `IDydx`",
+                "pr": 2466
+            },
+            {
+                "note": "Rename `DydxBrigeAction.accountId` to `DydxBridgeAction.accountIdx`",
+                "pr": 2466
+            },
+            {
                 "note": "Fix broken tests.",
                 "pr": 2462
             },
@@ -21,6 +98,10 @@
             },
             {
                 "note": "Add asset data decoding functions",
+                "pr": 2462
+            },
+            {
+                "note": "Add `setOperators()` to `IDydx`",
                 "pr": 2462
             }
         ],

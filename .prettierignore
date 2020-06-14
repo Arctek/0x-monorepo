@@ -64,6 +64,10 @@ lib
 /contracts/dev-utils/test/generated-wrappers
 /contracts/dev-utils/generated-artifacts
 /contracts/dev-utils/test/generated-artifacts
+/contracts/zero-ex/generated-wrappers
+/contracts/zero-ex/test/generated-wrappers
+/contracts/zero-ex/generated-artifacts
+/contracts/zero-ex/test/generated-artifacts
 /contracts/staking/build/
 /contracts/coordinator/build/
 /contracts/exchange/build/
@@ -91,3 +95,4 @@ packages/abi-gen/test-cli/fixtures/artifacts/AbiGenDummy.json
 packages/abi-gen/test-cli/fixtures/artifacts/LibDummy.json
 packages/abi-gen/test-cli/fixtures/artifacts/TestLibDummy.json
 packages/*/docs
+*.sol

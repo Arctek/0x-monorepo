@@ -1,5 +1,157 @@
 [
     {
+        "version": "4.5.0",
+        "changes": [
+            {
+                "note": "Add support for private liquidity providers",
+                "pr": 2505
+            },
+            {
+                "note": "Big refactor of market operation utils",
+                "pr": 2513
+            },
+            {
+                "note": "Remove `dustFractionThreshold`, `noConflicts` options.",
+                "pr": 2513
+            },
+            {
+                "note": "Revamp fill optimization algorithm",
+                "pr": 2513
+            },
+            {
+                "note": "Add fallback orders to quotes via `allowFallback` option.",
+                "pr": 2513
+            },
+            {
+                "note": "Add `maxFallbackSlippage` option.",
+                "pr": 2513
+            },
+            {
+                "note": "Fix fee schedule not being scaled by gas price.",
+                "pr": 2522
+            },
+            {
+                "note": "Fix quote optimizer bug not properly accounting for fees.",
+                "pr": 2526
+            },
+            {
+                "note": "Fix `getBatchMarketBuyOrdersAsync` throwing NO_OPTIMAL_PATH",
+                "pr": 2533
+            },
+            {
+                "note": "Add DFB support + refactor swap quote calculator utils",
+                "pr": 2536
+            },
+            {
+                "note": "Add support for RFQ-T, querying maker-hosted endpoints for quotes to be submitted by the taker",
+                "pr": 2541
+            },
+            {
+                "note": "Add support for indicative (non-committal) quotes via RFQ-T",
+                "pr": 2555
+            },
+            {
+                "note": "Collapse `LiquidityProvider` into `DexForwarderBridge`",
+                "pr": 2560
+            },
+            {
+                "note": "Added Curve `sUSD`",
+                "pr": 2563
+            },
+            {
+                "note": "Fix sporadically failing quote simulation tests",
+                "pr": 2564
+            },
+            {
+                "note": "Apply Native order penalty inline with the target amount",
+                "pr": 2565
+            },
+            {
+                "note": "Remove Kyber exclusion when Uniswap/Eth2Dai is present",
+                "pr": 2575
+            },
+            {
+                "note": "Expose fills object in asset-swapper quote orders",
+                "pr": 2583
+            },
+            {
+                "note": "Increase timeout for tests",
+                "pr": 2587
+            },
+            {
+                "note": "Add support for Uniswap V2",
+                "pr": 2599
+            },
+            {
+                "note": "Add support for MultiBridge",
+                "pr": 2593
+            },
+            {
+                "note": "Fix Uniswap V2 path ordering",
+                "pr": 2601
+            },
+            {
+                "note": "Add exchange proxy support",
+                "pr": 2591
+            }
+        ]
+    },
+    {
+        "version": "4.4.0",
+        "changes": [
+            {
+                "note": "Add support for ERC721 assets",
+                "pr": 2491
+            },
+            {
+                "note": "Add destroy for gas heartbeat",
+                "pr": 2492
+            },
+            {
+                "note": "Added `BUSD` Curve",
+                "pr": 2506
+            },
+            {
+                "note": "Updated `Compound` Curve address",
+                "pr": 2506
+            }
+        ],
+        "timestamp": 1583220306
+    },
+    {
+        "version": "4.3.2",
+        "changes": [
+            {
+                "note": "Fix order native pruning by fill amount",
+                "pr": 2500
+            }
+        ],
+        "timestamp": 1582837861
+    },
+    {
+        "timestamp": 1582677073,
+        "version": "4.3.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "version": "4.3.0",
+        "changes": [
+            {
+                "note": "Add `fees` to `GetMarketOrdersOpts`",
+                "pr": 2481
+            },
+            {
+                "note": "Incorporate fees into fill optimization",
+                "pr": 2481
+            }
+        ],
+        "timestamp": 1582623685
+    },
+    {
         "version": "4.2.0",
         "changes": [
             {

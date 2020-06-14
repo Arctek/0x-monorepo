@@ -2,7 +2,8 @@ import { ContractAddresses } from '@0x/contract-wrappers';
 import { SignedOrder } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 
-import { GetMarketOrdersOpts } from './utils/market_operation_utils/types';
+import { GetMarketOrdersOpts, OptimizedMarketOrder } from './utils/market_operation_utils/types';
+import { LogFunction } from './utils/quote_requestor';
 
 /**
  * expiryBufferMs: The number of seconds to add when calculating whether an order is expired or not. Defaults to 300s (5m).
@@ -49,19 +50,22 @@ export interface SignedOrderWithFillableAmounts extends SignedOrder {
  * calldataHexString: The hexstring of the calldata.
  * toAddress: The contract address to call.
  * ethAmount: The eth amount in wei to send with the smart contract call.
+ * allowanceTarget: The address the taker should grant an allowance to.
  */
 export interface CalldataInfo {
     calldataHexString: string;
     toAddress: string;
     ethAmount: BigNumber;
+    allowanceTarget: string;
 }
 
 /**
  * Represents the varying smart contracts that can consume a valid swap quote
  */
 export enum ExtensionContractType {
-    Forwarder = 'FORWARDER',
     None = 'NONE',
+    Forwarder = 'FORWARDER',
+    ExchangeProxy = 'EXCHANGE_PROXY',
 }
 
 /**
@@ -96,7 +100,7 @@ export interface SwapQuoteConsumerOpts {
  */
 export interface SwapQuoteGetOutputOpts {
     useExtensionContract: ExtensionContractType;
-    extensionContractOpts?: ForwarderExtensionContractOpts | any;
+    extensionContractOpts?: ForwarderExtensionContractOpts | ExchangeProxyContractOpts | any;
 }
 
 /**
@@ -111,13 +115,21 @@ export interface SwapQuoteExecutionOpts extends SwapQuoteGetOutputOpts {
 }
 
 /**
- * ethAmount: The amount of eth (in Wei) sent to the forwarder contract.
  * feePercentage: percentage (up to 5%) of the taker asset paid to feeRecipient
  * feeRecipient: address of the receiver of the feePercentage of taker asset
  */
 export interface ForwarderExtensionContractOpts {
     feePercentage: number;
     feeRecipient: string;
+}
+
+/**
+ * @param isFromETH Whether the input token is ETH.
+ * @param isToETH Whether the output token is ETH.
+ */
+export interface ExchangeProxyContractOpts {
+    isFromETH: boolean;
+    isToETH: boolean;
 }
 
 export type SwapQuote = MarketBuySwapQuote | MarketSellSwapQuote;
@@ -131,7 +143,7 @@ export interface GetExtensionContractTypeOpts {
  * takerAssetData: String that represents a specific taker asset (for more info: https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md).
  * makerAssetData: String that represents a specific maker asset (for more info: https://github.com/0xProject/0x-protocol-specification/blob/master/v2/v2-specification.md).
  * gasPrice: gas price used to determine protocolFee amount, default to ethGasStation fast amount.
- * orders: An array of objects conforming to SignedOrder. These orders can be used to cover the requested assetBuyAmount plus slippage.
+ * orders: An array of objects conforming to OptimizedMarketOrder. These orders can be used to cover the requested assetBuyAmount plus slippage.
  * bestCaseQuoteInfo: Info about the best case price for the asset.
  * worstCaseQuoteInfo: Info about the worst case price for the asset.
  */
@@ -139,7 +151,7 @@ export interface SwapQuoteBase {
     takerAssetData: string;
     makerAssetData: string;
     gasPrice: BigNumber;
-    orders: SignedOrder[];
+    orders: OptimizedMarketOrder[];
     bestCaseQuoteInfo: SwapQuoteInfo;
     worstCaseQuoteInfo: SwapQuoteInfo;
     sourceBreakdown: SwapQuoteOrdersBreakdown;
@@ -169,6 +181,7 @@ export interface MarketBuySwapQuote extends SwapQuoteBase {
  * totalTakerAssetAmount: The total amount of takerAsset required to complete the swap (filling orders, and paying takerFees).
  * makerAssetAmount: The amount of makerAsset that will be acquired through the swap.
  * protocolFeeInWeiAmount: The amount of ETH to pay (in WEI) as protocol fee to perform the swap for desired asset.
+ * gas: Amount of estimated gas needed to fill the quote.
  */
 export interface SwapQuoteInfo {
     feeTakerAssetAmount: BigNumber;
@@ -176,6 +189,7 @@ export interface SwapQuoteInfo {
     totalTakerAssetAmount: BigNumber;
     makerAssetAmount: BigNumber;
     protocolFeeInWeiAmount: BigNumber;
+    gas: number;
 }
 
 /**
@@ -185,19 +199,36 @@ export interface SwapQuoteOrdersBreakdown {
     [source: string]: BigNumber;
 }
 
+export interface RfqtRequestOpts {
+    takerAddress: string;
+    apiKey: string;
+    intentOnFilling: boolean;
+    isIndicative?: boolean;
+    makerEndpointMaxResponseTimeMs?: number;
+}
+
 /**
- * slippagePercentage: The percentage buffer to add to account for slippage. Affects max ETH price estimates. Defaults to 0.2 (20%).
  * gasPrice: gas price to determine protocolFee amount, default to ethGasStation fast amount
  */
 export interface SwapQuoteRequestOpts extends CalculateSwapQuoteOpts {
-    slippagePercentage: number;
     gasPrice?: BigNumber;
+    rfqt?: RfqtRequestOpts;
 }
 
 /**
  * Opts required to generate a SwapQuote with SwapQuoteCalculator
  */
 export interface CalculateSwapQuoteOpts extends GetMarketOrdersOpts {}
+
+/**
+ * A mapping from RFQ-T quote provider URLs to the trading pairs they support.
+ * The value type represents an array of supported asset pairs, with each array element encoded as a 2-element array of token addresses.
+ */
+export interface RfqtMakerAssetOfferings {
+    [endpoint: string]: Array<[string, string]>;
+}
+
+export { LogFunction } from './utils/quote_requestor';
 
 /**
  * chainId: The ethereum chain id. Defaults to 1 (mainnet).
@@ -212,6 +243,15 @@ export interface SwapQuoterOpts extends OrderPrunerOpts {
     expiryBufferMs: number;
     contractAddresses?: ContractAddresses;
     samplerGasLimit?: number;
+    liquidityProviderRegistryAddress?: string;
+    multiBridgeAddress?: string;
+    rfqt?: {
+        takerApiKeyWhitelist: string[];
+        makerAssetOfferings: RfqtMakerAssetOfferings;
+        skipBuyRequests?: boolean;
+        warningLogger?: LogFunction;
+        infoLogger?: LogFunction;
+    };
 }
 
 /**
@@ -234,6 +274,7 @@ export enum SwapQuoterError {
     InsufficientAssetLiquidity = 'INSUFFICIENT_ASSET_LIQUIDITY',
     AssetUnavailable = 'ASSET_UNAVAILABLE',
     NoGasPriceProvidedOrEstimated = 'NO_GAS_PRICE_PROVIDED_OR_ESTIMATED',
+    AssetDataUnsupported = 'ASSET_DATA_UNSUPPORTED',
 }
 
 /**
@@ -259,4 +300,30 @@ export enum OrderPrunerPermittedFeeTypes {
     NoFees = 'NO_FEES',
     MakerDenominatedTakerFee = 'MAKER_DENOMINATED_TAKER_FEE',
     TakerDenominatedTakerFee = 'TAKER_DENOMINATED_TAKER_FEE',
+}
+
+/**
+ * Represents a mocked RFQT maker responses.
+ */
+export interface MockedRfqtFirmQuoteResponse {
+    endpoint: string;
+    requestApiKey: string;
+    requestParams: {
+        [key: string]: string | undefined;
+    };
+    responseData: any;
+    responseCode: number;
+}
+
+/**
+ * Represents a mocked RFQT maker responses.
+ */
+export interface MockedRfqtIndicativeQuoteResponse {
+    endpoint: string;
+    requestApiKey: string;
+    requestParams: {
+        [key: string]: string | undefined;
+    };
+    responseData: any;
+    responseCode: number;
 }

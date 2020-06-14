@@ -32,6 +32,10 @@ contract DeploymentConstants {
     address constant private UNISWAP_EXCHANGE_FACTORY_ADDRESS = 0xc0a47dFe034B400B47bDaD5FecDa2621de6c4d95;
     // /// @dev Kovan address of the `UniswapExchangeFactory` contract.
     // address constant private UNISWAP_EXCHANGE_FACTORY_ADDRESS = 0xD3E51Ef092B2845f10401a0159B2B96e8B6c3D30;
+    /// @dev Mainnet address of the `UniswapV2Router01` contract.
+    address constant private UNISWAP_V2_ROUTER_01_ADDRESS = 0xf164fC0Ec4E93095b804a4795bBe1e041497b92a;
+    // /// @dev Kovan address of the `UniswapV2Router01` contract.
+    // address constant private UNISWAP_V2_ROUTER_01_ADDRESS = 0xf164fC0Ec4E93095b804a4795bBe1e041497b92a;
     /// @dev Mainnet address of the Eth2Dai `MatchingMarket` contract.
     address constant private ETH2DAI_ADDRESS = 0x794e6e91555438aFc3ccF1c5076A74F42133d08D;
     // /// @dev Kovan address of the Eth2Dai `MatchingMarket` contract.
@@ -47,13 +51,21 @@ contract DeploymentConstants {
     /// @dev Mainnet address of the `Chai` contract
     address constant private CHAI_ADDRESS = 0x06AF07097C9Eeb7fD685c692751D5C66dB49c215;
     /// @dev Mainnet address of the 0x DevUtils contract.
-    address constant private DEV_UTILS_ADDRESS = 0xcCc2431a7335F21d9268bA62F0B32B0f2EFC463f;
+    address constant private DEV_UTILS_ADDRESS = 0x74134CF88b21383713E096a5ecF59e297dc7f547;
     // /// @dev Kovan address of the 0x DevUtils contract.
-    // address constant private DEV_UTILS_ADDRESS = 0x161793Cdca4fF9E766A706c2C49c36AC1340bbcd;
+    // address constant private DEV_UTILS_ADDRESS = 0x9402639A828BdF4E9e4103ac3B69E1a6E522eB59;
     /// @dev Kyber ETH pseudo-address.
     address constant internal KYBER_ETH_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
     /// @dev Mainnet address of the dYdX contract.
     address constant private DYDX_ADDRESS = 0x1E0447b19BB6EcFdAe1e4AE1694b0C3659614e4e;
+    /// @dev Mainnet address of the GST2 contract
+    address constant private GST_ADDRESS = 0x0000000000b3F879cb30FE243b4Dfee438691c04;
+    /// @dev Mainnet address of the GST Collector
+    address constant private GST_COLLECTOR_ADDRESS = 0x000000D3b08566BE75A6DB803C03C85C0c1c5B96;
+    // /// @dev Kovan address of the GST2 contract
+    // address constant private GST_ADDRESS = address(0);
+    // /// @dev Kovan address of the GST Collector
+    // address constant private GST_COLLECTOR_ADDRESS = address(0);
 
     /// @dev Overridable way to get the `KyberNetworkProxy` address.
     /// @return kyberAddress The `IKyberNetworkProxy` address.
@@ -83,6 +95,16 @@ contract DeploymentConstants {
         returns (address uniswapAddress)
     {
         return UNISWAP_EXCHANGE_FACTORY_ADDRESS;
+    }
+
+    /// @dev Overridable way to get the `UniswapV2Router01` address.
+    /// @return uniswapRouterAddress The `UniswapV2Router01` address.
+    function _getUniswapV2Router01Address()
+        internal
+        view
+        returns (address uniswapRouterAddress)
+    {
+        return UNISWAP_V2_ROUTER_01_ADDRESS;
     }
 
     /// @dev An overridable way to retrieve the Eth2Dai `MatchingMarket` contract.
@@ -143,5 +165,25 @@ contract DeploymentConstants {
         returns (address dydxAddress)
     {
         return DYDX_ADDRESS;
+    }
+
+    /// @dev An overridable way to retrieve the GST2 contract address.
+    /// @return gst The GST contract.
+    function _getGstAddress()
+        internal
+        view
+        returns (address gst)
+    {
+        return GST_ADDRESS;
+    }
+
+    /// @dev An overridable way to retrieve the GST Collector address.
+    /// @return collector The GST collector address.
+    function _getGstCollectorAddress()
+        internal
+        view
+        returns (address collector)
+    {
+        return GST_COLLECTOR_ADDRESS;
     }
 }

@@ -1,10 +1,41 @@
 [
     {
+        "version": "5.3.0",
+        "changes": [
+            {
+                "note": "Allow identifiers with leading underscores in python wrappers",
+                "pr": 2591
+            }
+        ]
+    },
+    {
+        "version": "5.2.2",
+        "changes": [
+            {
+                "note": "Include `bin` files"
+            }
+        ],
+        "timestamp": 1582677073
+    },
+    {
+        "timestamp": 1582623685,
+        "version": "5.2.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
         "version": "5.2.0",
         "changes": [
             {
                 "note": "Support deploying contracts with unliked libraries through `deployWithLibrariesFrom0xArtifactAsync()`",
                 "pr": 2463
+            },
+            {
+                "note": "Update reference outputs",
+                "pr": 2466
             }
         ],
         "timestamp": 1581204851

@@ -1,5 +1,75 @@
 [
     {
+        "version": "1.6.0",
+        "changes": [
+            {
+                "note": "Pass in `DevUtils` address as a constructor parameter",
+                "pr": 2531
+            },
+            {
+                "note": "Sample `Curve` for buy amounts",
+                "pr": 2551
+            },
+            {
+                "note": "Added `sampleBuysFromKyberNetwork`",
+                "pr": 2551
+            },
+            {
+                "note": "Use `searchBestRate` in Kyber samples. Return 0 when Uniswap/Eth2Dai reserve",
+                "pr": 2575
+            },
+            {
+                "note": "Add UniswapV2",
+                "pr": 2595
+            },
+            {
+                "note": "Sample from MultiBridge",
+                "pr": 2593
+            }
+        ]
+    },
+    {
+        "timestamp": 1583220306,
+        "version": "1.5.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "version": "1.5.0",
+        "changes": [
+            {
+                "note": "Add generic liquidity provider sampling",
+                "pr": 2487
+            },
+            {
+                "note": "Use liquidity provider registry in sampler",
+                "pr": 2499
+            }
+        ],
+        "timestamp": 1582837861
+    },
+    {
+        "timestamp": 1582677073,
+        "version": "1.4.2",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1582623685,
+        "version": "1.4.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
         "version": "1.4.0",
         "changes": [
             {

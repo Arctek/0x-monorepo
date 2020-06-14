@@ -12,7 +12,7 @@ export {
     SRAPollingOrderProviderOpts,
     SRAWebsocketOrderProviderOpts,
 } from '@0x/orderbook';
-export { APIOrder, Asset, AssetPairsItem, Order, SignedOrder } from '@0x/types';
+export { APIOrder, Asset, AssetPairsItem, SignedOrder } from '@0x/types';
 export { BigNumber } from '@0x/utils';
 export {
     DataItem,
@@ -41,8 +41,13 @@ export {
     ForwarderExtensionContractOpts,
     GetExtensionContractTypeOpts,
     LiquidityForTakerMakerAssetDataPair,
+    LogFunction,
     MarketBuySwapQuote,
+    MarketOperation,
     MarketSellSwapQuote,
+    MockedRfqtFirmQuoteResponse,
+    RfqtMakerAssetOfferings,
+    RfqtRequestOpts,
     SwapQuote,
     SwapQuoteConsumerBase,
     SwapQuoteConsumerOpts,
@@ -55,12 +60,16 @@ export {
     SwapQuoteConsumerError,
     SignedOrderWithFillableAmounts,
     SwapQuoteOrdersBreakdown,
+    ExchangeProxyContractOpts,
 } from './types';
 export {
     ERC20BridgeSource,
     CollapsedFill,
     NativeCollapsedFill,
     OptimizedMarketOrder,
+    GetMarketOrdersRfqtOpts,
 } from './utils/market_operation_utils/types';
 export { affiliateFeeUtils } from './utils/affiliate_fee_utils';
 export { ProtocolFeeUtils } from './utils/protocol_fee_utils';
+export { QuoteRequestor, RfqtIndicativeQuoteResponse } from './utils/quote_requestor';
+export { rfqtMocker } from './utils/rfqt_mocker';

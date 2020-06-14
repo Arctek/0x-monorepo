@@ -1,5 +1,48 @@
 [
     {
+        "version": "5.5.0",
+        "changes": [
+            {
+                "note": "Add `ZeroExRevertErrors`",
+                "pr": 2540
+            },
+            {
+                "note": "Print full revert error in stack traces.",
+                "pr": 2540
+            },
+            {
+                "note": "`ZeroExRevertErrors.Migrate` -> `ZeroExRevertErrors.Ownable`",
+                "pr": 2564
+            },
+            {
+                "note": "`instanceof Array` => `Array.isArray`",
+                "pr": 2567
+            },
+            {
+                "note": "Add more `ZeroExRevertErrors`",
+                "pr": 2545
+            },
+            {
+                "note": "Add more `ZeroExRevertErrors`",
+                "pr": 2576
+            },
+            {
+                "note": "Update `ZeroExRevertErrors`",
+                "pr": 2597
+            }
+        ]
+    },
+    {
+        "version": "5.4.1",
+        "changes": [
+            {
+                "note": "Fix extra space in `provider.send` signature",
+                "pr": 2428
+            }
+        ],
+        "timestamp": 1582623685
+    },
+    {
         "version": "5.4.0",
         "changes": [
             {

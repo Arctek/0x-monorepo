@@ -1,6 +1,6 @@
 {
     "name": "@0x/contract-addresses",
-    "version": "4.6.0",
+    "version": "4.9.0",
     "engines": {
         "node": ">=6.12"
     },
@@ -12,7 +12,11 @@
     "scripts": {
         "build": "yarn tsc -b",
         "build:ci": "yarn build",
-        "clean": "shx rm -rf lib"
+        "clean": "shx rm -rf lib",
+        "publish:private": "yarn build && gitpkg publish"
+    },
+    "gitpkg": {
+        "registry": "git@github.com:0xProject/gitpkg-registry.git"
     },
     "repository": {
         "type": "git",
@@ -24,12 +28,9 @@
     },
     "homepage": "https://github.com/0xProject/0x-monorepo/packages/contract-addresses/README.md",
     "devDependencies": {
-        "@types/lodash": "4.14.104",
         "shx": "^0.2.2",
-        "typescript": "3.0.1"
-    },
-    "dependencies": {
-        "lodash": "^4.17.11"
+        "typescript": "3.0.1",
+        "gitpkg": "https://github.com/0xProject/gitpkg.git"
     },
     "publishConfig": {
         "access": "public"

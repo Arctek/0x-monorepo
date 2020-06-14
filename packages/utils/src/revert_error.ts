@@ -9,7 +9,16 @@ import { BigNumber } from './configured_bignumber';
 
 // tslint:disable: max-classes-per-file
 
-type ArgTypes = string | BigNumber | number | boolean | BigNumber[] | string[] | number[] | boolean[];
+type ArgTypes =
+    | string
+    | BigNumber
+    | number
+    | boolean
+    | BigNumber[]
+    | string[]
+    | number[]
+    | boolean[]
+    | Array<BigNumber | number | string>;
 type ValueMap = ObjectMap<ArgTypes | undefined>;
 type RevertErrorDecoder = (hex: string) => ValueMap;
 
@@ -113,7 +122,9 @@ export abstract class RevertError extends Error {
         const instance = new type();
         try {
             const values = decoder(_bytes);
-            return _.assign(instance, { values });
+            _.assign(instance, { values });
+            instance.message = instance.toString();
+            return instance;
         } catch (err) {
             throw new Error(
                 `Bytes ${_bytes} cannot be decoded as a revert error of type ${instance.signature}: ${err.message}`,

@@ -9,6 +9,7 @@ import * as _ from 'lodash';
 
 import { constants } from './constants';
 import {
+    CalculateSwapQuoteOpts,
     LiquidityForTakerMakerAssetDataPair,
     MarketBuySwapQuote,
     MarketOperation,
@@ -21,11 +22,13 @@ import {
 } from './types';
 import { assert } from './utils/assert';
 import { calculateLiquidity } from './utils/calculate_liquidity';
-import { DexOrderSampler, MarketOperationUtils } from './utils/market_operation_utils';
-import { dummyOrderUtils } from './utils/market_operation_utils/dummy_order_utils';
+import { MarketOperationUtils } from './utils/market_operation_utils';
+import { createDummyOrderForSampler } from './utils/market_operation_utils/orders';
+import { DexOrderSampler } from './utils/market_operation_utils/sampler';
 import { orderPrunerUtils } from './utils/order_prune_utils';
 import { OrderStateUtils } from './utils/order_state_utils';
 import { ProtocolFeeUtils } from './utils/protocol_fee_utils';
+import { QuoteRequestor } from './utils/quote_requestor';
 import { sortingUtils } from './utils/sorting_utils';
 import { SwapQuoteCalculator } from './utils/swap_quote_calculator';
 
@@ -41,6 +44,9 @@ export class SwapQuoter {
     private readonly _devUtilsContract: DevUtilsContract;
     private readonly _marketOperationUtils: MarketOperationUtils;
     private readonly _orderStateUtils: OrderStateUtils;
+    private readonly _quoteRequestor: QuoteRequestor;
+    private readonly _rfqtTakerApiKeyWhitelist: string[];
+    private readonly _rfqtSkipBuyRequests: boolean;
 
     /**
      * Instantiates a new SwapQuoter instance given existing liquidity in the form of orders and feeOrders.
@@ -144,11 +150,14 @@ export class SwapQuoter {
      * @return  An instance of SwapQuoter
      */
     constructor(supportedProvider: SupportedProvider, orderbook: Orderbook, options: Partial<SwapQuoterOpts> = {}) {
-        const { chainId, expiryBufferMs, permittedOrderFeeTypes, samplerGasLimit } = _.merge(
-            {},
-            constants.DEFAULT_SWAP_QUOTER_OPTS,
-            options,
-        );
+        const {
+            chainId,
+            expiryBufferMs,
+            permittedOrderFeeTypes,
+            samplerGasLimit,
+            liquidityProviderRegistryAddress,
+            rfqt,
+        } = _.merge({}, constants.DEFAULT_SWAP_QUOTER_OPTS, options);
         const provider = providerUtils.standardizeOrThrow(supportedProvider);
         assert.isValidOrderbook('orderbook', orderbook);
         assert.isNumber('chainId', chainId);
@@ -158,20 +167,36 @@ export class SwapQuoter {
         this.orderbook = orderbook;
         this.expiryBufferMs = expiryBufferMs;
         this.permittedOrderFeeTypes = permittedOrderFeeTypes;
+        this._rfqtTakerApiKeyWhitelist = rfqt ? rfqt.takerApiKeyWhitelist || [] : [];
+        this._rfqtSkipBuyRequests =
+            rfqt && rfqt.skipBuyRequests !== undefined
+                ? rfqt.skipBuyRequests
+                : (r => r !== undefined && r.skipBuyRequests === true)(constants.DEFAULT_SWAP_QUOTER_OPTS.rfqt);
         this._contractAddresses = options.contractAddresses || getContractAddressesForChainOrThrow(chainId);
         this._devUtilsContract = new DevUtilsContract(this._contractAddresses.devUtils, provider);
         this._protocolFeeUtils = new ProtocolFeeUtils(constants.PROTOCOL_FEE_UTILS_POLLING_INTERVAL_IN_MS);
         this._orderStateUtils = new OrderStateUtils(this._devUtilsContract);
+        this._quoteRequestor = new QuoteRequestor(
+            rfqt ? rfqt.makerAssetOfferings || {} : {},
+            rfqt ? rfqt.warningLogger : undefined,
+            rfqt ? rfqt.infoLogger : undefined,
+            expiryBufferMs,
+        );
         const sampler = new DexOrderSampler(
             new IERC20BridgeSamplerContract(this._contractAddresses.erc20BridgeSampler, this.provider, {
                 gas: samplerGasLimit,
             }),
         );
-        this._marketOperationUtils = new MarketOperationUtils(sampler, this._contractAddresses, {
-            chainId,
-            exchangeAddress: this._contractAddresses.exchange,
-        });
-        this._swapQuoteCalculator = new SwapQuoteCalculator(this._protocolFeeUtils, this._marketOperationUtils);
+        this._marketOperationUtils = new MarketOperationUtils(
+            sampler,
+            this._contractAddresses,
+            {
+                chainId,
+                exchangeAddress: this._contractAddresses.exchange,
+            },
+            liquidityProviderRegistryAddress,
+        );
+        this._swapQuoteCalculator = new SwapQuoteCalculator(this._marketOperationUtils);
     }
 
     /**
@@ -234,11 +259,7 @@ export class SwapQuoter {
     ): Promise<Array<MarketBuySwapQuote | undefined>> {
         makerAssetBuyAmount.map((a, i) => assert.isBigNumber(`makerAssetBuyAmount[${i}]`, a));
         let gasPrice: BigNumber;
-        const { slippagePercentage, ...calculateSwapQuoteOpts } = _.merge(
-            {},
-            constants.DEFAULT_SWAP_QUOTE_REQUEST_OPTS,
-            options,
-        );
+        const calculateSwapQuoteOpts = _.merge({}, constants.DEFAULT_SWAP_QUOTE_REQUEST_OPTS, options);
         if (!!options.gasPrice) {
             gasPrice = options.gasPrice;
             assert.isBigNumber('gasPrice', gasPrice);
@@ -256,7 +277,7 @@ export class SwapQuoter {
             );
             if (prunedOrders.length === 0) {
                 return [
-                    dummyOrderUtils.createDummyOrderForSampler(
+                    createDummyOrderForSampler(
                         makerAssetDatas[i],
                         takerAssetData,
                         this._contractAddresses.uniswapBridge,
@@ -270,7 +291,6 @@ export class SwapQuoter {
         const swapQuotes = await this._swapQuoteCalculator.calculateBatchMarketBuySwapQuoteAsync(
             allPrunedOrders,
             makerAssetBuyAmount,
-            slippagePercentage,
             gasPrice,
             calculateSwapQuoteOpts,
         );
@@ -297,13 +317,12 @@ export class SwapQuoter {
         assert.isBigNumber('makerAssetBuyAmount', makerAssetBuyAmount);
         const makerAssetData = assetDataUtils.encodeERC20AssetData(makerTokenAddress);
         const takerAssetData = assetDataUtils.encodeERC20AssetData(takerTokenAddress);
-        const swapQuote = this.getMarketBuySwapQuoteForAssetDataAsync(
+        return this.getMarketBuySwapQuoteForAssetDataAsync(
             makerAssetData,
             takerAssetData,
             makerAssetBuyAmount,
             options,
         );
-        return swapQuote;
     }
 
     /**
@@ -327,13 +346,12 @@ export class SwapQuoter {
         assert.isBigNumber('takerAssetSellAmount', takerAssetSellAmount);
         const makerAssetData = assetDataUtils.encodeERC20AssetData(makerTokenAddress);
         const takerAssetData = assetDataUtils.encodeERC20AssetData(takerTokenAddress);
-        const swapQuote = this.getMarketSellSwapQuoteForAssetDataAsync(
+        return this.getMarketSellSwapQuoteForAssetDataAsync(
             makerAssetData,
             takerAssetData,
             takerAssetSellAmount,
             options,
         );
-        return swapQuote;
     }
 
     /**
@@ -466,7 +484,8 @@ export class SwapQuoter {
      * Destroys any subscriptions or connections.
      */
     public async destroyAsync(): Promise<void> {
-        return this.orderbook.destroyAsync();
+        await this._protocolFeeUtils.destroyAsync();
+        await this.orderbook.destroyAsync();
     }
 
     /**
@@ -494,8 +513,7 @@ export class SwapQuoter {
             this.permittedOrderFeeTypes,
             this.expiryBufferMs,
         );
-        const sortedPrunedOrders = sortingUtils.sortOrders(prunedOrders);
-        return sortedPrunedOrders;
+        return prunedOrders;
     }
 
     /**
@@ -508,55 +526,87 @@ export class SwapQuoter {
         marketOperation: MarketOperation,
         options: Partial<SwapQuoteRequestOpts>,
     ): Promise<SwapQuote> {
-        const { slippagePercentage, ...calculateSwapQuoteOpts } = _.merge(
-            {},
-            constants.DEFAULT_SWAP_QUOTE_REQUEST_OPTS,
-            options,
-        );
+        const opts = _.merge({}, constants.DEFAULT_SWAP_QUOTE_REQUEST_OPTS, options);
         assert.isString('makerAssetData', makerAssetData);
         assert.isString('takerAssetData', takerAssetData);
-        assert.isNumber('slippagePercentage', slippagePercentage);
         let gasPrice: BigNumber;
-        if (!!options.gasPrice) {
-            gasPrice = options.gasPrice;
+        if (!!opts.gasPrice) {
+            gasPrice = opts.gasPrice;
             assert.isBigNumber('gasPrice', gasPrice);
         } else {
             gasPrice = await this._protocolFeeUtils.getGasPriceEstimationOrThrowAsync();
         }
-        // get the relevant orders for the makerAsset
-        let prunedOrders = await this._getSignedOrdersAsync(makerAssetData, takerAssetData);
-        // if no native orders, pass in a dummy order for the sampler to have required metadata for sampling
-        if (prunedOrders.length === 0) {
-            prunedOrders = [
-                dummyOrderUtils.createDummyOrderForSampler(
+        // get batches of orders from different sources, awaiting sources in parallel
+        const orderBatchPromises: Array<Promise<SignedOrder[]>> = [];
+        orderBatchPromises.push(this._getSignedOrdersAsync(makerAssetData, takerAssetData)); // order book
+        if (
+            opts.rfqt &&
+            opts.rfqt.intentOnFilling &&
+            opts.rfqt.apiKey &&
+            this._rfqtTakerApiKeyWhitelist.includes(opts.rfqt.apiKey) &&
+            !(marketOperation === MarketOperation.Buy && this._rfqtSkipBuyRequests)
+        ) {
+            if (!opts.rfqt.takerAddress || opts.rfqt.takerAddress === constants.NULL_ADDRESS) {
+                throw new Error('RFQ-T requests must specify a taker address');
+            }
+            orderBatchPromises.push(
+                this._quoteRequestor.requestRfqtFirmQuotesAsync(
                     makerAssetData,
                     takerAssetData,
-                    this._contractAddresses.uniswapBridge,
+                    assetFillAmount,
+                    marketOperation,
+                    opts.rfqt,
                 ),
-            ];
+            );
+        }
+
+        const orderBatches: SignedOrder[][] = await Promise.all(orderBatchPromises);
+
+        const unsortedOrders: SignedOrder[] = orderBatches.reduce((_orders, batch) => _orders.concat(...batch));
+
+        const orders = sortingUtils.sortOrders(unsortedOrders);
+
+        // if no native orders, pass in a dummy order for the sampler to have required metadata for sampling
+        if (orders.length === 0) {
+            orders.push(
+                createDummyOrderForSampler(makerAssetData, takerAssetData, this._contractAddresses.uniswapBridge),
+            );
         }
 
         let swapQuote: SwapQuote;
 
+        const calcOpts: CalculateSwapQuoteOpts = opts;
+
+        if (calcOpts.rfqt !== undefined && this._shouldEnableIndicativeRfqt(calcOpts.rfqt, marketOperation)) {
+            calcOpts.rfqt.quoteRequestor = this._quoteRequestor;
+        }
+
         if (marketOperation === MarketOperation.Buy) {
             swapQuote = await this._swapQuoteCalculator.calculateMarketBuySwapQuoteAsync(
-                prunedOrders,
+                orders,
                 assetFillAmount,
-                slippagePercentage,
                 gasPrice,
-                calculateSwapQuoteOpts,
+                calcOpts,
             );
         } else {
             swapQuote = await this._swapQuoteCalculator.calculateMarketSellSwapQuoteAsync(
-                prunedOrders,
+                orders,
                 assetFillAmount,
-                slippagePercentage,
                 gasPrice,
-                calculateSwapQuoteOpts,
+                calcOpts,
             );
         }
 
         return swapQuote;
+    }
+    private _shouldEnableIndicativeRfqt(opts: CalculateSwapQuoteOpts['rfqt'], op: MarketOperation): boolean {
+        return (
+            opts !== undefined &&
+            opts.isIndicative !== undefined &&
+            opts.isIndicative &&
+            this._rfqtTakerApiKeyWhitelist.includes(opts.apiKey) &&
+            !(op === MarketOperation.Buy && this._rfqtSkipBuyRequests)
+        );
     }
 }
 // tslint:disable-next-line: max-file-line-count

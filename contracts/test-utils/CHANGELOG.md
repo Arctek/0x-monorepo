@@ -5,6 +5,18 @@ Edit the package's CHANGELOG.json file only.
 
 CHANGELOG
 
+## v5.3.2 - _March 3, 2020_
+
+    * Dependencies updated
+
+## v5.3.1 - _February 27, 2020_
+
+    * Dependencies updated
+
+## v5.3.0 - _February 25, 2020_
+
+    * Add `blockchainTests.config` (#2466)
+
 ## v5.1.5 - _February 15, 2020_
 
     * Dependencies updated

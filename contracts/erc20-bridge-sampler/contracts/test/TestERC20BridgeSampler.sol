@@ -24,7 +24,8 @@ import "@0x/contracts-exchange-libs/contracts/src/LibOrder.sol";
 import "../src/ERC20BridgeSampler.sol";
 import "../src/IEth2Dai.sol";
 import "../src/IDevUtils.sol";
-import "../src/IKyberNetwork.sol";
+import "../src/IKyberNetworkProxy.sol";
+import "../src/IUniswapV2Router01.sol";
 
 
 library LibDeterministicQuotes {
@@ -194,6 +195,55 @@ contract TestERC20BridgeSamplerUniswapExchange is
 }
 
 
+contract TestERC20BridgeSamplerUniswapV2Router01 is
+    IUniswapV2Router01,
+    DeploymentConstants,
+    FailTrigger
+{
+    bytes32 constant private SALT = 0xadc7fcb33c735913b8635927e66896b356a53a912ab2ceff929e60a04b53b3c1;
+
+    // Deterministic `IUniswapV2Router01.getAmountsOut()`.
+    function getAmountsOut(uint256 amountIn, address[] calldata path)
+        external
+        view
+        returns (uint256[] memory amounts)
+    {
+        require(path.length >= 2, "PATH_TOO_SHORT");
+        _revertIfShouldFail();
+        amounts = new uint256[](path.length);
+        amounts[0] = amountIn;
+        for (uint256 i = 0; i < path.length - 1; ++i) {
+            amounts[i + 1] = LibDeterministicQuotes.getDeterministicSellQuote(
+                SALT,
+                path[i],
+                path[i + 1],
+                amounts[i]
+            );
+        }
+    }
+
+    // Deterministic `IUniswapV2Router01.getAmountsInt()`.
+    function getAmountsIn(uint256 amountOut, address[] calldata path)
+        external
+        view
+        returns (uint256[] memory amounts)
+    {
+        require(path.length >= 2, "PATH_TOO_SHORT");
+        _revertIfShouldFail();
+        amounts = new uint256[](path.length);
+        amounts[path.length - 1] = amountOut;
+        for (uint256 i = path.length - 1; i > 0; --i) {
+            amounts[i - 1] = LibDeterministicQuotes.getDeterministicBuyQuote(
+                SALT,
+                path[i - 1],
+                path[i],
+                amounts[i]
+            );
+        }
+    }
+}
+
+
 contract TestERC20BridgeSamplerKyberNetwork is
     IKyberNetwork,
     DeploymentConstants,
@@ -202,7 +252,30 @@ contract TestERC20BridgeSamplerKyberNetwork is
     bytes32 constant private SALT = 0x0ff3ca9d46195c39f9a12afb74207b4970349fb3cfb1e459bbf170298d326bc7;
     address constant public ETH_ADDRESS = 0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE;
 
-    // Deterministic `IKyberNetwork.getExpectedRate()`.
+    function kyberNetworkContract()
+        external
+        view
+        returns (address)
+    {
+        return address(this);
+    }
+
+    // IKyberNetwork not exposed via IKyberNetworkProxy
+    function searchBestRate(
+        address fromToken,
+        address toToken,
+        uint256 fromAmount,
+        bool  // usePermissionless
+    )
+        external
+        view
+        returns (address reserve, uint256 expectedRate)
+    {
+        (expectedRate, ) = this.getExpectedRate(fromToken, toToken, fromAmount);
+        return (address(this), expectedRate);
+    }
+
+    // Deterministic `IKyberNetworkProxy.getExpectedRate()`.
     function getExpectedRate(
         address fromToken,
         address toToken,
@@ -302,13 +375,15 @@ contract TestERC20BridgeSampler is
     FailTrigger
 {
     TestERC20BridgeSamplerUniswapExchangeFactory public uniswap;
+    TestERC20BridgeSamplerUniswapV2Router01 public uniswapV2Router;
     TestERC20BridgeSamplerEth2Dai public eth2Dai;
     TestERC20BridgeSamplerKyberNetwork public kyber;
 
     uint8 private constant MAX_ORDER_STATUS = uint8(LibOrder.OrderStatus.CANCELLED) + 1;
 
-    constructor() public {
+    constructor() public ERC20BridgeSampler(address(this)) {
         uniswap = new TestERC20BridgeSamplerUniswapExchangeFactory();
+        uniswapV2Router = new TestERC20BridgeSamplerUniswapV2Router01();
         eth2Dai = new TestERC20BridgeSamplerEth2Dai();
         kyber = new TestERC20BridgeSamplerKyberNetwork();
     }
@@ -327,6 +402,7 @@ contract TestERC20BridgeSampler is
         bytes memory
     )
         public
+        pure
         returns (
             LibOrder.OrderInfo memory orderInfo,
             uint256 fillableTakerAssetAmount,
@@ -357,15 +433,6 @@ contract TestERC20BridgeSampler is
         return LibDeterministicQuotes.getDeterministicTokenDecimals(tokenAddress);
     }
 
-    // Overriden to point to a this contract.
-    function _getDevUtilsAddress()
-        internal
-        view
-        returns (address devUtilAddress)
-    {
-        return address(this);
-    }
-
     // Overriden to point to a custom contract.
     function _getEth2DaiAddress()
         internal
@@ -382,6 +449,15 @@ contract TestERC20BridgeSampler is
         returns (address uniswapAddress)
     {
         return address(uniswap);
+    }
+
+    // Overriden to point to a custom contract.
+    function _getUniswapV2Router01Address()
+        internal
+        view
+        returns (address uniswapV2RouterAddress)
+    {
+        return address(uniswapV2Router);
     }
 
     // Overriden to point to a custom contract.

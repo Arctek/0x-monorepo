@@ -1,5 +1,71 @@
 [
     {
+        "version": "4.5.0",
+        "changes": [
+            {
+                "note": "Added `GST_ADDRESS` and `GST_COLLECTOR_ADDRESS`",
+                "pr": 2523
+            },
+            {
+                "note": "Set GST Collector address in `DeploymentConstants`",
+                "pr": 2530
+            },
+            {
+                "note": "Add solidity 0.6 contracts",
+                "pr": 2540
+            },
+            {
+                "note": "Add more solidity 0.6 contracts",
+                "pr": 2545
+            },
+            {
+                "note": "Add UniswapV2 addresses to `DeploymentConstants`",
+                "pr": 2595
+            },
+            {
+                "note": "Update V06 contracts to get around 0.6.9 docstring errors",
+                "pr": 2597
+            }
+        ]
+    },
+    {
+        "timestamp": 1583220306,
+        "version": "4.4.3",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1582837861,
+        "version": "4.4.2",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1582677073,
+        "version": "4.4.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "version": "4.4.0",
+        "changes": [
+            {
+                "note": "Add `D18` library",
+                "pr": 2466
+            }
+        ],
+        "timestamp": 1582623685
+    },
+    {
         "timestamp": 1581748629,
         "version": "4.3.1",
         "changes": [

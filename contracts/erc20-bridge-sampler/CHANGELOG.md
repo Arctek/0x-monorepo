@@ -5,6 +5,23 @@ Edit the package's CHANGELOG.json file only.
 
 CHANGELOG
 
+## v1.5.1 - _March 3, 2020_
+
+    * Dependencies updated
+
+## v1.5.0 - _February 27, 2020_
+
+    * Add generic liquidity provider sampling (#2487)
+    * Use liquidity provider registry in sampler (#2499)
+
+## v1.4.2 - _February 26, 2020_
+
+    * Dependencies updated
+
+## v1.4.1 - _February 25, 2020_
+
+    * Dependencies updated
+
 ## v1.4.0 - _February 15, 2020_
 
     * Added Curve contract sampling (#2483)

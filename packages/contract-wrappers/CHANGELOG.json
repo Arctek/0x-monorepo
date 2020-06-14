@@ -1,5 +1,73 @@
 [
     {
+        "version": "13.7.0",
+        "changes": [
+            {
+                "note": "Regenerated wrappers for Broker and GodsUnchainedValidator",
+                "pr": 2511
+            },
+            {
+                "note": "Added wrapper for MaximumGasPrice",
+                "pr": 2511
+            },
+            {
+                "note": "Added `Forwarder.marketSellAmountWithEth`",
+                "pr": 2521
+            },
+            {
+                "note": "Added `ERC20BridgeSampler.sampleBuysFromCurve`",
+                "pr": 2551
+            },
+            {
+                "note": "Added `ERC20BridgeSampler.sampleBuysFromKyberNetwork`",
+                "pr": 2551
+            },
+            {
+                "note": "Added `ERC20BridgeSampler.sampleBuysFromUniswapV2",
+                "pr": 2595
+            },
+            {
+                "note": "Added `ERC20BridgeSampler.sampleSellsFromUniswapV2",
+                "pr": 2595
+            },
+            {
+                "note": "Added `ERC20BridgeSampler.sampleSellsFromMultiBridge",
+                "pr": 2593
+            },
+            {
+                "note": "Add `ITransformERC20`",
+                "pr": 2591
+            }
+        ]
+    },
+    {
+        "timestamp": 1583220306,
+        "version": "13.6.3",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1582837861,
+        "version": "13.6.2",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1582623685,
+        "version": "13.6.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
         "version": "13.6.0",
         "changes": [
             {

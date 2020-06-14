@@ -3,18 +3,18 @@ import * as _ from 'lodash';
 
 import { SignedOrderWithFillableAmounts } from '../types';
 
-import { utils } from './utils';
+import { isOrderTakerFeePayableWithMakerAsset, isOrderTakerFeePayableWithTakerAsset } from './utils';
 
 export const fillableAmountsUtils = {
-    getTakerAssetAmountSwappedAfterFees(order: SignedOrderWithFillableAmounts): BigNumber {
-        if (utils.isOrderTakerFeePayableWithTakerAsset(order)) {
+    getTakerAssetAmountSwappedAfterOrderFees(order: SignedOrderWithFillableAmounts): BigNumber {
+        if (isOrderTakerFeePayableWithTakerAsset(order)) {
             return order.fillableTakerAssetAmount.plus(order.fillableTakerFeeAmount);
         } else {
             return order.fillableTakerAssetAmount;
         }
     },
-    getMakerAssetAmountSwappedAfterFees(order: SignedOrderWithFillableAmounts): BigNumber {
-        if (utils.isOrderTakerFeePayableWithMakerAsset(order)) {
+    getMakerAssetAmountSwappedAfterOrderFees(order: SignedOrderWithFillableAmounts): BigNumber {
+        if (isOrderTakerFeePayableWithMakerAsset(order)) {
             return order.fillableMakerAssetAmount.minus(order.fillableTakerFeeAmount);
         } else {
             return order.fillableMakerAssetAmount;

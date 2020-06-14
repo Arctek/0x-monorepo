@@ -172,14 +172,13 @@ setup(
             "coverage",
             "coveralls",
             "eth_utils",
-            "mypy",
+            "mypy<=0.770",  # see https://github.com/python/mypy/issues/8953
             "mypy_extensions",
             "pycodestyle",
             "pydocstyle",
             "pylint",
             "pytest",
             "sphinx",
-            "sphinx-autodoc-typehints",
             "tox",
             "twine",
         ]

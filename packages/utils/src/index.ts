@@ -43,3 +43,13 @@ export import LibBytesRevertErrors = require('./revert_errors/utils/lib_bytes_re
 export import OwnableRevertErrors = require('./revert_errors/utils/ownable_revert_errors');
 export import ReentrancyGuardRevertErrors = require('./revert_errors/utils/reentrancy_guard_revert_errors');
 export import SafeMathRevertErrors = require('./revert_errors/utils/safe_math_revert_errors');
+
+export const ZeroExRevertErrors = {
+    Common: require('./revert_errors/zero-ex/common_revert_errors'),
+    Proxy: require('./revert_errors/zero-ex/proxy_revert_errors'),
+    SimpleFunctionRegistry: require('./revert_errors/zero-ex/simple_function_registry_revert_errors'),
+    Ownable: require('./revert_errors/zero-ex/ownable_revert_errors'),
+    Spender: require('./revert_errors/zero-ex/spender_revert_errors'),
+    TransformERC20: require('./revert_errors/zero-ex/transform_erc20_revert_errors'),
+    Wallet: require('./revert_errors/zero-ex/wallet_revert_errors'),
+};

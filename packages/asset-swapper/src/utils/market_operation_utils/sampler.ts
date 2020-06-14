@@ -1,256 +1,16 @@
 import { IERC20BridgeSamplerContract } from '@0x/contract-wrappers';
-import { SignedOrder } from '@0x/types';
 import { BigNumber } from '@0x/utils';
 
-import { constants } from '../../constants';
-
-import { DexSample, ERC20BridgeSource } from './types';
-
-/**
- * A composable operation the be run in `DexOrderSampler.executeAsync()`.
- */
-export interface BatchedOperation<TResult> {
-    encodeCall(contract: IERC20BridgeSamplerContract): string;
-    handleCallResultsAsync(contract: IERC20BridgeSamplerContract, callResults: string): Promise<TResult>;
-}
-
-/**
- * Composable operations that can be batched in a single transaction,
- * for use with `DexOrderSampler.executeAsync()`.
- */
-const samplerOperations = {
-    getOrderFillableTakerAmounts(orders: SignedOrder[]): BatchedOperation<BigNumber[]> {
-        return {
-            encodeCall: contract => {
-                return contract
-                    .getOrderFillableTakerAssetAmounts(orders, orders.map(o => o.signature))
-                    .getABIEncodedTransactionData();
-            },
-            handleCallResultsAsync: async (contract, callResults) => {
-                return contract.getABIDecodedReturnData<BigNumber[]>('getOrderFillableTakerAssetAmounts', callResults);
-            },
-        };
-    },
-    getOrderFillableMakerAmounts(orders: SignedOrder[]): BatchedOperation<BigNumber[]> {
-        return {
-            encodeCall: contract => {
-                return contract
-                    .getOrderFillableMakerAssetAmounts(orders, orders.map(o => o.signature))
-                    .getABIEncodedTransactionData();
-            },
-            handleCallResultsAsync: async (contract, callResults) => {
-                return contract.getABIDecodedReturnData<BigNumber[]>('getOrderFillableMakerAssetAmounts', callResults);
-            },
-        };
-    },
-    getKyberSellQuotes(
-        makerToken: string,
-        takerToken: string,
-        takerFillAmounts: BigNumber[],
-    ): BatchedOperation<BigNumber[]> {
-        return {
-            encodeCall: contract => {
-                return contract
-                    .sampleSellsFromKyberNetwork(takerToken, makerToken, takerFillAmounts)
-                    .getABIEncodedTransactionData();
-            },
-            handleCallResultsAsync: async (contract, callResults) => {
-                return contract.getABIDecodedReturnData<BigNumber[]>('sampleSellsFromKyberNetwork', callResults);
-            },
-        };
-    },
-    getUniswapSellQuotes(
-        makerToken: string,
-        takerToken: string,
-        takerFillAmounts: BigNumber[],
-    ): BatchedOperation<BigNumber[]> {
-        return {
-            encodeCall: contract => {
-                return contract
-                    .sampleSellsFromUniswap(takerToken, makerToken, takerFillAmounts)
-                    .getABIEncodedTransactionData();
-            },
-            handleCallResultsAsync: async (contract, callResults) => {
-                return contract.getABIDecodedReturnData<BigNumber[]>('sampleSellsFromUniswap', callResults);
-            },
-        };
-    },
-    getEth2DaiSellQuotes(
-        makerToken: string,
-        takerToken: string,
-        takerFillAmounts: BigNumber[],
-    ): BatchedOperation<BigNumber[]> {
-        return {
-            encodeCall: contract => {
-                return contract
-                    .sampleSellsFromEth2Dai(takerToken, makerToken, takerFillAmounts)
-                    .getABIEncodedTransactionData();
-            },
-            handleCallResultsAsync: async (contract, callResults) => {
-                return contract.getABIDecodedReturnData<BigNumber[]>('sampleSellsFromEth2Dai', callResults);
-            },
-        };
-    },
-    getCurveSellQuotes(
-        curveAddress: string,
-        fromTokenIdx: number,
-        toTokenIdx: number,
-        takerFillAmounts: BigNumber[],
-    ): BatchedOperation<BigNumber[]> {
-        return {
-            encodeCall: contract => {
-                return contract
-                    .sampleSellsFromCurve(
-                        curveAddress,
-                        new BigNumber(fromTokenIdx),
-                        new BigNumber(toTokenIdx),
-                        takerFillAmounts,
-                    )
-                    .getABIEncodedTransactionData();
-            },
-            handleCallResultsAsync: async (contract, callResults) => {
-                return contract.getABIDecodedReturnData<BigNumber[]>('sampleSellsFromCurve', callResults);
-            },
-        };
-    },
-    getUniswapBuyQuotes(
-        makerToken: string,
-        takerToken: string,
-        makerFillAmounts: BigNumber[],
-    ): BatchedOperation<BigNumber[]> {
-        return {
-            encodeCall: contract => {
-                return contract
-                    .sampleBuysFromUniswap(takerToken, makerToken, makerFillAmounts)
-                    .getABIEncodedTransactionData();
-            },
-            handleCallResultsAsync: async (contract, callResults) => {
-                return contract.getABIDecodedReturnData<BigNumber[]>('sampleBuysFromUniswap', callResults);
-            },
-        };
-    },
-    getEth2DaiBuyQuotes(
-        makerToken: string,
-        takerToken: string,
-        makerFillAmounts: BigNumber[],
-    ): BatchedOperation<BigNumber[]> {
-        return {
-            encodeCall: contract => {
-                return contract
-                    .sampleBuysFromEth2Dai(takerToken, makerToken, makerFillAmounts)
-                    .getABIEncodedTransactionData();
-            },
-            handleCallResultsAsync: async (contract, callResults) => {
-                return contract.getABIDecodedReturnData<BigNumber[]>('sampleBuysFromEth2Dai', callResults);
-            },
-        };
-    },
-    getSellQuotes(
-        sources: ERC20BridgeSource[],
-        makerToken: string,
-        takerToken: string,
-        takerFillAmounts: BigNumber[],
-    ): BatchedOperation<DexSample[][]> {
-        const subOps = sources
-            .map(source => {
-                let batchedOperation;
-                if (source === ERC20BridgeSource.Eth2Dai) {
-                    batchedOperation = samplerOperations.getEth2DaiSellQuotes(makerToken, takerToken, takerFillAmounts);
-                } else if (source === ERC20BridgeSource.Uniswap) {
-                    batchedOperation = samplerOperations.getUniswapSellQuotes(makerToken, takerToken, takerFillAmounts);
-                } else if (source === ERC20BridgeSource.Kyber) {
-                    batchedOperation = samplerOperations.getKyberSellQuotes(makerToken, takerToken, takerFillAmounts);
-                } else if (
-                    source === ERC20BridgeSource.CurveUsdcDai ||
-                    source === ERC20BridgeSource.CurveUsdcDaiUsdt ||
-                    source === ERC20BridgeSource.CurveUsdcDaiUsdtTusd
-                ) {
-                    const { curveAddress, tokens } = constants.DEFAULT_CURVE_OPTS[source];
-                    const fromTokenIdx = tokens.indexOf(takerToken);
-                    const toTokenIdx = tokens.indexOf(makerToken);
-                    if (fromTokenIdx !== -1 && toTokenIdx !== -1) {
-                        batchedOperation = samplerOperations.getCurveSellQuotes(
-                            curveAddress,
-                            fromTokenIdx,
-                            toTokenIdx,
-                            takerFillAmounts,
-                        );
-                    }
-                } else {
-                    throw new Error(`Unsupported sell sample source: ${source}`);
-                }
-                return { batchedOperation, source };
-            })
-            .filter(op => op.batchedOperation) as Array<{
-            batchedOperation: BatchedOperation<BigNumber[]>;
-            source: ERC20BridgeSource;
-        }>;
-        return {
-            encodeCall: contract => {
-                const subCalls = subOps.map(op => op.batchedOperation.encodeCall(contract));
-                return contract.batchCall(subCalls).getABIEncodedTransactionData();
-            },
-            handleCallResultsAsync: async (contract, callResults) => {
-                const rawSubCallResults = contract.getABIDecodedReturnData<string[]>('batchCall', callResults);
-                const samples = await Promise.all(
-                    subOps.map(async (op, i) =>
-                        op.batchedOperation.handleCallResultsAsync(contract, rawSubCallResults[i]),
-                    ),
-                );
-                return subOps.map((op, i) => {
-                    return samples[i].map((output, j) => ({
-                        source: op.source,
-                        output,
-                        input: takerFillAmounts[j],
-                    }));
-                });
-            },
-        };
-    },
-    getBuyQuotes(
-        sources: ERC20BridgeSource[],
-        makerToken: string,
-        takerToken: string,
-        makerFillAmounts: BigNumber[],
-    ): BatchedOperation<DexSample[][]> {
-        const subOps = sources.map(source => {
-            if (source === ERC20BridgeSource.Eth2Dai) {
-                return samplerOperations.getEth2DaiBuyQuotes(makerToken, takerToken, makerFillAmounts);
-            } else if (source === ERC20BridgeSource.Uniswap) {
-                return samplerOperations.getUniswapBuyQuotes(makerToken, takerToken, makerFillAmounts);
-            } else {
-                throw new Error(`Unsupported buy sample source: ${source}`);
-            }
-        });
-        return {
-            encodeCall: contract => {
-                const subCalls = subOps.map(op => op.encodeCall(contract));
-                return contract.batchCall(subCalls).getABIEncodedTransactionData();
-            },
-            handleCallResultsAsync: async (contract, callResults) => {
-                const rawSubCallResults = contract.getABIDecodedReturnData<string[]>('batchCall', callResults);
-                const samples = await Promise.all(
-                    subOps.map(async (op, i) => op.handleCallResultsAsync(contract, rawSubCallResults[i])),
-                );
-                return sources.map((source, i) => {
-                    return samples[i].map((output, j) => ({
-                        source,
-                        output,
-                        input: makerFillAmounts[j],
-                    }));
-                });
-            },
-        };
-    },
-};
+import { samplerOperations } from './sampler_operations';
+import { BatchedOperation } from './types';
 
 /**
  * Generate sample amounts up to `maxFillAmount`.
  */
 export function getSampleAmounts(maxFillAmount: BigNumber, numSamples: number, expBase: number = 1): BigNumber[] {
-    const distribution = [...Array<BigNumber>(numSamples)].map((v, i) => new BigNumber(expBase).pow(i));
+    const distribution = [...Array<BigNumber>(numSamples)].map((_v, i) => new BigNumber(expBase).pow(i));
     const stepSizes = distribution.map(d => d.div(BigNumber.sum(...distribution)));
-    const amounts = stepSizes.map((s, i) => {
+    const amounts = stepSizes.map((_s, i) => {
         return maxFillAmount
             .times(BigNumber.sum(...[0, ...stepSizes.slice(0, i + 1)]))
             .integerValue(BigNumber.ROUND_UP);
@@ -374,7 +134,17 @@ export class DexOrderSampler {
      */
     public async executeBatchAsync<T extends Array<BatchedOperation<any>>>(ops: T): Promise<any[]> {
         const callDatas = ops.map(o => o.encodeCall(this._samplerContract));
-        const callResults = await this._samplerContract.batchCall(callDatas).callAsync();
-        return Promise.all(callResults.map(async (r, i) => ops[i].handleCallResultsAsync(this._samplerContract, r)));
+        // Execute all non-empty calldatas.
+        const rawCallResults = await this._samplerContract.batchCall(callDatas.filter(cd => cd !== '0x')).callAsync();
+        // Return the parsed results.
+        let rawCallResultsIdx = 0;
+        return Promise.all(
+            callDatas.map(async (callData, i) => {
+                if (callData !== '0x') {
+                    return ops[i].handleCallResultsAsync(this._samplerContract, rawCallResults[rawCallResultsIdx++]);
+                }
+                return ops[i].handleCallResultsAsync(this._samplerContract, '0x');
+            }),
+        );
     }
 }

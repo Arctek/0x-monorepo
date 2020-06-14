@@ -1,5 +1,108 @@
 [
     {
+        "version": "4.10.0",
+        "changes": [
+            {
+                "note": "Updated Kovan's ERC20BridgeSampler address",
+                "pr": 2519
+            },
+            {
+                "note": "Added MaximumGasPrice addresses",
+                "pr": 2511
+            },
+            {
+                "note": "Redeploy `KyberBridge`, `UniswapBridge`, `Eth2DaiBridge`, `CurveBridge`, `DydxBridge` on mainnet and kovan",
+                "pr": 2512
+            },
+            {
+                "note": "Redeploy `KyberBridge`, `UniswapBridge`, `Eth2DaiBridge`, `CurveBridge`, `DydxBridge` on mainnet and kovan",
+                "pr": 2529
+            },
+            {
+                "note": "Redeploy `CurveBridge` with GST support",
+                "pr": 2530
+            },
+            {
+                "note": "Add `dexForwarderBridge` addresses",
+                "pr": 2525
+            },
+            {
+                "note": "Redeploy `Forwarder` on all networks",
+                "pr": 2521
+            },
+            {
+                "note": "Redeploy `DexForwarderBridge` on Mainnet with Gas Token freeing",
+                "pr": 2536
+            },
+            {
+                "note": "Revert to older Curve Bridge (without Gas Tokens)",
+                "pr": 2536
+            },
+            {
+                "note": "Updated Ganache's ERC20BridgeSampler address",
+                "pr": 2541
+            },
+            {
+                "note": "Updated Mainnet ERC20BridgeSampler address",
+                "pr": 2551
+            },
+            {
+                "note": "Updated Kovan ERC20BridgeSampler address",
+                "pr": 2568
+            },
+            {
+                "note": "Redeploy ERC20BridgeSampler on kovan",
+                "pr": 2570
+            },
+            {
+                "note": "Redeploy ERC20BridgeSampler on Mainnet using `Kyber.searchBestRate`",
+                "pr": 2575
+            },
+            {
+                "note": "Redeploy ERC20BridgeSampler on Mainnet and Kovan using UniswapV2",
+                "pr": 2599
+            },
+            {
+                "note": "Add UniswapV2Bridge address on Mainnet (new field)",
+                "pr": 2599
+            },
+            {
+                "note": "Add Exchange Proxy addresses",
+                "pr": 2591
+            }
+        ]
+    },
+    {
+        "version": "4.9.0",
+        "changes": [
+            {
+                "note": "Redeploy `ERC20BridgeSampler`",
+                "pr": 2503
+            }
+        ],
+        "timestamp": 1583220306
+    },
+    {
+        "version": "4.8.0",
+        "changes": [
+            {
+                "note": "Added Broker, GodsUnchainedValidator, ChainlinkStopLimit to index.ts",
+                "pr": 2498
+            }
+        ],
+        "timestamp": 1582837861
+    },
+    {
+        "version": "4.7.0",
+        "changes": [
+            {
+                "note": "Update `DevUtils` addresses.",
+                "pr": 2493
+            }
+        ],
+        "timestamp": 1582623685
+    },
+    {
         "version": "4.6.0",
         "changes": [
             {
@@ -60,7 +163,7 @@
             },
             {
                 "note": "Update snapshot addresses",
-                "pr": 2464
+                "pr": 2466
             }
         ],
         "timestamp": 1580811564

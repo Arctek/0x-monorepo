@@ -1,5 +1,51 @@
 [
     {
+        "version": "2.5.2",
+        "changes": [
+            {
+                "note": "Update `ERC20BridgeSampler` tests",
+                "pr": 2531
+            }
+        ]
+    },
+    {
+        "timestamp": 1583220306,
+        "version": "2.5.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "version": "2.5.0",
+        "changes": [
+            {
+                "note": "Add `ChaiBridge` and `DydxBridge` gas benchmark tests.",
+                "pr": 2478
+            }
+        ],
+        "timestamp": 1582837861
+    },
+    {
+        "timestamp": 1582677073,
+        "version": "2.4.2",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
+        "timestamp": 1582623685,
+        "version": "2.4.1",
+        "changes": [
+            {
+                "note": "Dependencies updated"
+            }
+        ]
+    },
+    {
         "version": "2.4.0",
         "changes": [
             {
@@ -31,6 +77,14 @@
             {
                 "note": "Update tests for refactored `DevUtils`",
                 "pr": 2464
+            },
+            {
+                "note": "Add DydxBridge validation",
+                "pr": 2466
+            },
+            {
+                "note": "Add DevUtils DydxBridge validation mainnet tests",
+                "pr": 2466
             }
         ],
         "timestamp": 1581204851

@@ -1,6 +1,8 @@
+import { IERC20BridgeSamplerContract } from '@0x/contract-wrappers';
 import { BigNumber } from '@0x/utils';
 
-import { SignedOrderWithFillableAmounts } from '../../types';
+import { RfqtRequestOpts, SignedOrderWithFillableAmounts } from '../../types';
+import { QuoteRequestor, RfqtIndicativeQuoteResponse } from '../../utils/quote_requestor';
 
 /**
  * Order domain keys: chainId and exchange
@@ -26,21 +28,29 @@ export enum AggregationError {
 export enum ERC20BridgeSource {
     Native = 'Native',
     Uniswap = 'Uniswap',
+    UniswapV2 = 'Uniswap_V2',
+    UniswapV2Eth = 'Uniswap_V2_ETH',
     Eth2Dai = 'Eth2Dai',
     Kyber = 'Kyber',
     CurveUsdcDai = 'Curve_USDC_DAI',
     CurveUsdcDaiUsdt = 'Curve_USDC_DAI_USDT',
     CurveUsdcDaiUsdtTusd = 'Curve_USDC_DAI_USDT_TUSD',
+    CurveUsdcDaiUsdtBusd = 'Curve_USDC_DAI_USDT_BUSD',
+    CurveUsdcDaiUsdtSusd = 'Curve_USDC_DAI_USDT_SUSD',
+    LiquidityProvider = 'LiquidityProvider',
+    MultiBridge = 'MultiBridge',
 }
 
 // Internal `fillData` field for `Fill` objects.
-export interface FillData {
-    source: ERC20BridgeSource;
-}
+export interface FillData {}
 
 // `FillData` for native fills.
 export interface NativeFillData extends FillData {
     order: SignedOrderWithFillableAmounts;
+}
+
+export interface RfqtFillData extends FillData {
+    quote: RfqtIndicativeQuoteResponse;
 }
 
 /**
@@ -56,10 +66,10 @@ export interface DexSample {
  * Flags for `Fill` objects.
  */
 export enum FillFlags {
-    SourceNative = 0x1,
-    SourceUniswap = 0x2,
-    SourceEth2Dai = 0x4,
-    SourceKyber = 0x8,
+    ConflictsWithKyber = 0x1,
+    Kyber = 0x2,
+    ConflictsWithMultiBridge = 0x4,
+    MultiBridge = 0x8,
 }
 
 /**
@@ -68,18 +78,25 @@ export enum FillFlags {
 export interface Fill {
     // See `FillFlags`.
     flags: FillFlags;
-    // `FillFlags` that are incompatible with this fill, e.g., to prevent
-    // Kyber from mixing with Uniswap and Eth2Dai and vice versa.
-    exclusionMask: number;
     // Input fill amount (taker asset amount in a sell, maker asset amount in a buy).
     input: BigNumber;
     // Output fill amount (maker asset amount in a sell, taker asset amount in a buy).
     output: BigNumber;
+    // The maker/taker rate.
+    rate: BigNumber;
+    // The maker/taker rate, adjusted by fees.
+    adjustedRate: BigNumber;
+    // The output fill amount, ajdusted by fees.
+    adjustedOutput: BigNumber;
     // Fill that must precede this one. This enforces certain fills to be contiguous.
     parent?: Fill;
+    // The index of the fill in the original path.
+    index: number;
+    // The source of the fill. See `ERC20BridgeSource`.
+    source: ERC20BridgeSource;
     // Data associated with this this Fill object. Used to reconstruct orders
     // from paths.
-    fillData: FillData | NativeFillData;
+    fillData?: FillData | NativeFillData;
 }
 
 /**
@@ -91,19 +108,19 @@ export interface CollapsedFill {
      */
     source: ERC20BridgeSource;
     /**
-     * Total maker asset amount.
+     * Total input amount (sum of `subFill`s)
      */
-    totalMakerAssetAmount: BigNumber;
+    input: BigNumber;
     /**
-     * Total taker asset amount.
+     * Total output amount (sum of `subFill`s)
      */
-    totalTakerAssetAmount: BigNumber;
+    output: BigNumber;
     /**
-     * All the fill asset amounts that were collapsed into this node.
+     * Quantities of all the fills that were collapsed.
      */
     subFills: Array<{
-        makerAssetAmount: BigNumber;
-        takerAssetAmount: BigNumber;
+        input: BigNumber;
+        output: BigNumber;
     }>;
 }
 
@@ -121,7 +138,11 @@ export interface OptimizedMarketOrder extends SignedOrderWithFillableAmounts {
     /**
      * The optimized fills that generated this order.
      */
-    fill: CollapsedFill;
+    fills: CollapsedFill[];
+}
+
+export interface GetMarketOrdersRfqtOpts extends RfqtRequestOpts {
+    quoteRequestor?: QuoteRequestor;
 }
 
 /**
@@ -132,10 +153,6 @@ export interface GetMarketOrdersOpts {
      * Liquidity sources to exclude. Default is none.
      */
     excludedSources: ERC20BridgeSource[];
-    /**
-     * Whether to prevent mixing Kyber orders with Uniswap and Eth2Dai orders.
-     */
-    noConflicts: boolean;
     /**
      * Complexity limit on the search algorithm, i.e., maximum number of
      * nodes to visit. Default is 1024.
@@ -151,14 +168,15 @@ export interface GetMarketOrdersOpts {
      */
     bridgeSlippage: number;
     /**
+     * The maximum price slippage allowed in the fallback quote. If the slippage
+     * between the optimal quote and the fallback quote is greater than this
+     * percentage, no fallback quote will be provided.
+     */
+    maxFallbackSlippage: number;
+    /**
      * Number of samples to take for each DEX quote.
      */
     numSamples: number;
-    /**
-     * Dust amount, as a fraction of the fill amount.
-     * Default is 0.01 (100 basis points).
-     */
-    dustFractionThreshold: number;
     /**
      * The exponential sampling distribution base.
      * A value of 1 will result in evenly spaced samples.
@@ -167,4 +185,40 @@ export interface GetMarketOrdersOpts {
      * Default: 1.25.
      */
     sampleDistributionBase: number;
+    /**
+     * Fees for each liquidity source, expressed in gas.
+     */
+    feeSchedule: { [source: string]: BigNumber };
+    /**
+     * Estimated gas consumed by each liquidity source.
+     */
+    gasSchedule: { [source: string]: number };
+    /**
+     * Whether to pad the quote with a redundant fallback quote using different
+     * sources. Defaults to `true`.
+     */
+    allowFallback: boolean;
+    rfqt?: GetMarketOrdersRfqtOpts;
+    /**
+     * Whether to combine contiguous bridge orders into a single DexForwarderBridge
+     * order. Defaults to `true`.
+     */
+    shouldBatchBridgeOrders: boolean;
+}
+
+/**
+ * A composable operation the be run in `DexOrderSampler.executeAsync()`.
+ */
+export interface BatchedOperation<TResult> {
+    encodeCall(contract: IERC20BridgeSamplerContract): string;
+    handleCallResultsAsync(contract: IERC20BridgeSamplerContract, callResults: string): Promise<TResult>;
+}
+
+/**
+ * Used in the ERC20BridgeSampler when a source does not natively
+ * support sampling via a specific buy amount.
+ */
+export interface FakeBuyOpts {
+    targetSlippageBps: BigNumber;
+    maxIterations: BigNumber;
 }

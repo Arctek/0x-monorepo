@@ -1,5 +1,26 @@
 [
     {
+        "version": "4.2.0",
+        "changes": [
+            {
+                "note": "Clean up heartbeat functions on close",
+                "pr": 2492
+            },
+            {
+                "note": "Fix ERC721 asset support",
+                "pr": 2491
+            },
+            {
+                "note": "Remove `slippagePercentage` SwapQuoter config.",
+                "pr": 2513
+            },
+            {
+                "note": "Pin `asset-swapper` dependency",
+                "pr": 2591
+            }
+        ]
+    },
+    {
         "version": "4.1.0",
         "changes": [
             {

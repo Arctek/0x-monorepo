@@ -1,6 +1,6 @@
 import { BigNumber } from '@0x/utils';
 
-import { AccountNotReady, AccountState, Network, ProviderType } from './types';
+import { AccountNotReady, AccountState, AffiliateInfo, Network, ProviderType } from './types';
 
 // TODO(dave4506) until we have /prices endpoint ready, we will use this whitelist for bridge order liquidity assets
 export const SUPPORTED_TOKEN_ASSET_DATA_WITH_BRIDGE_ORDERS = [
@@ -30,8 +30,6 @@ export const ONE_SECOND_MS = 1000;
 export const ONE_MINUTE_MS = ONE_SECOND_MS * 60;
 export const GIT_SHA = process.env.GIT_SHA;
 export const NODE_ENV = process.env.NODE_ENV;
-export const ERC20_SWAP_QUOTE_SLIPPAGE_PERCENTAGE = 0.2;
-export const ERC721_SWAP_QUOTE_SLIPPAGE_PERCENTAGE = 0;
 export const NPM_PACKAGE_VERSION = process.env.NPM_PACKAGE_VERSION;
 export const DEFAULT_UNKOWN_ASSET_NAME = '???';
 export const ACCOUNT_UPDATE_INTERVAL_TIME_MS = ONE_SECOND_MS * 5;
@@ -91,5 +89,13 @@ export const PROVIDER_TYPE_TO_NAME: { [key in ProviderType]: string } = {
     [ProviderType.Parity]: 'Parity',
     [ProviderType.TrustWallet]: 'Trust Wallet',
     [ProviderType.Opera]: 'Opera Wallet',
+    [ProviderType.Fortmatic]: 'Fortmatic',
     [ProviderType.Fallback]: 'Fallback',
 };
+export const NULL_ADDRESS = '0x0000000000000000000000000000000000000000';
+export const DEFAULT_AFFILIATE_INFO: AffiliateInfo = {
+    feeRecipient: NULL_ADDRESS,
+    feePercentage: 0,
+};
+
+export const FORTMATIC_API_KEY = process.env.INSTANT_FORTMATIC_API_KEY;
