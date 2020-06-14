@@ -22,10 +22,10 @@ import { swapQuoteConsumerUtils } from '../utils/swap_quote_consumer_utils';
 export class CoordinatorSwapQuoteConsumer implements SwapQuoteConsumerBase {
     public readonly provider: ZeroExProvider;
     public readonly chainId: number;
-    public readonly coordinatorAddress: string;
 
     private readonly _coordinatorClient: CoordinatorClient;
     private readonly _exchangeContract: ExchangeContract;
+    private readonly contractAddresses: ContractAddresses;
 
     constructor(
         supportedProvider: SupportedProvider,
@@ -37,7 +37,7 @@ export class CoordinatorSwapQuoteConsumer implements SwapQuoteConsumerBase {
         const provider = providerUtils.standardizeOrThrow(supportedProvider);
         this.provider = provider;
         this.chainId = chainId;
-        this.coordinatorAddress = contractAddresses.coordinator;
+        this.contractAddresses = contractAddresses;
         this._coordinatorClient = new CoordinatorClient(contractAddresses.coordinator, supportedProvider, chainId);
         this._exchangeContract = new ExchangeContract(contractAddresses.exchange, supportedProvider);
     }
@@ -64,7 +64,8 @@ export class CoordinatorSwapQuoteConsumer implements SwapQuoteConsumerBase {
         return {
             calldataHexString,
             ethAmount: quote.worstCaseQuoteInfo.protocolFeeInWeiAmount,
-            toAddress: this.coordinatorAddress
+            toAddress: this.contractAddresses.coordinator,
+            allowanceTarget: this.contractAddresses.erc20Proxy,
         };
     }
 
@@ -117,7 +118,7 @@ export class CoordinatorSwapQuoteConsumer implements SwapQuoteConsumerBase {
     }
 
     private _getCoordinatorContractAddress(): string {
-        return this.coordinatorAddress;
+        return this.contractAddresses.coordinator;
     }
 
     /*public async getSignedZeroExTransactionAsync(quote: SwapQuote): ZeroExTransaction {
